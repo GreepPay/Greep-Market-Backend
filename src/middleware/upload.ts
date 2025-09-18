@@ -13,16 +13,36 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilt
   }
 };
 
+// File filter to accept JSON files
+const jsonFileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  // Check file type
+  if (file.mimetype === 'application/json' || file.originalname.endsWith('.json')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only JSON files are allowed!'));
+  }
+};
+
 // Memory storage for processing files with Sharp
 const storage = multer.memoryStorage();
 
-// Multer configuration
+// Multer configuration for images
 export const upload = multer({
   storage,
   fileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
     files: 5, // Maximum 5 files
+  },
+});
+
+// Multer configuration for JSON files
+export const uploadJson = multer({
+  storage,
+  fileFilter: jsonFileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit for JSON files
+    files: 1, // Maximum 1 file
   },
 });
 
@@ -99,4 +119,9 @@ export const uploadMultiple = (fieldName: string, maxCount: number = 5) => [
 export const uploadFields = (fields: multer.Field[]) => [
   upload.fields(fields),
   processImages,
+];
+
+// Single JSON file upload
+export const uploadJsonFile = (fieldName: string) => [
+  uploadJson.single(fieldName),
 ];

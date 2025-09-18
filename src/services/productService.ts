@@ -36,11 +36,16 @@ export class ProductService {
    */
   static async createProduct(productData: CreateProductData): Promise<IProduct> {
     try {
-      // Check if SKU already exists
-      const existingProduct = await Product.findOne({ sku: productData.sku });
-      if (existingProduct) {
-        throw validationError('Product with this SKU already exists');
+      // Check if SKU already exists and generate a unique one if needed
+      let finalSku = productData.sku;
+      let counter = 1;
+      while (await Product.findOne({ sku: finalSku })) {
+        finalSku = `${productData.sku}-${counter}`;
+        counter++;
       }
+      
+      // Update the productData with the final unique SKU
+      productData.sku = finalSku;
 
       // Check if barcode already exists (if provided)
       if (productData.barcode) {
@@ -368,6 +373,42 @@ export class ProductService {
   }
 
   /**
+   * Delete all products for a store
+   */
+  static async deleteAllProducts(storeId: string): Promise<{ deletedCount: number }> {
+    try {
+      // Get all products for the store
+      const products = await Product.find({ store_id: storeId });
+      
+      if (products.length === 0) {
+        logger.info(`No products found for store: ${storeId}`);
+        return { deletedCount: 0 };
+      }
+
+      // Delete images from Cloudinary for all products
+      for (const product of products) {
+        for (const image of product.images) {
+          try {
+            await CloudinaryService.deleteImage(image.public_id);
+          } catch (error) {
+            logger.warn(`Failed to delete image ${image.public_id}:`, error);
+            // Continue with deletion even if image deletion fails
+          }
+        }
+      }
+
+      // Delete all products for the store
+      const result = await Product.deleteMany({ store_id: storeId });
+
+      logger.info(`Bulk deleted ${result.deletedCount} products for store: ${storeId}`);
+      return { deletedCount: result.deletedCount };
+    } catch (error) {
+      logger.error('Delete all products error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Update stock quantity
    */
   static async updateStock(productId: string, newQuantity: number): Promise<IProduct> {
@@ -384,6 +425,142 @@ export class ProductService {
       return product;
     } catch (error) {
       logger.error('Update stock error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export all products for a store
+   */
+  static async exportProducts(storeId: string): Promise<{
+    products: any[];
+    exportDate: string;
+    storeId: string;
+    totalProducts: number;
+  }> {
+    try {
+      const products = await Product.find({ store_id: storeId }).sort({ created_at: -1 });
+      
+      const exportData = {
+        products: products.map(product => ({
+          ...product.toObject(),
+          // Ensure all fields are included
+          _id: product._id,
+          name: product.name,
+          description: product.description || '',
+          price: product.price,
+          category: product.category,
+          sku: product.sku,
+          barcode: product.barcode || '',
+          stock_quantity: product.stock_quantity,
+          min_stock_level: product.min_stock_level,
+          unit: product.unit,
+          weight: product.weight,
+          dimensions: product.dimensions,
+          tags: product.tags || [],
+          images: product.images || [],
+          is_active: product.is_active,
+          is_featured: product.is_featured,
+          created_by: product.created_by,
+          store_id: product.store_id,
+          created_at: product.created_at,
+          updated_at: product.updated_at
+        })),
+        exportDate: new Date().toISOString(),
+        storeId,
+        totalProducts: products.length
+      };
+
+      logger.info(`Exported ${products.length} products for store: ${storeId}`);
+      return exportData;
+    } catch (error) {
+      logger.error('Export products error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Import products from JSON data
+   */
+  static async importProducts(
+    importData: any,
+    storeId: string,
+    createdBy: string
+  ): Promise<{
+    successCount: number;
+    errorCount: number;
+    errors: string[];
+    importedProducts: IProduct[];
+  }> {
+    try {
+      const { products } = importData;
+      
+      if (!products || !Array.isArray(products)) {
+        throw validationError('Invalid import data: products array not found');
+      }
+
+      const results = {
+        successCount: 0,
+        errorCount: 0,
+        errors: [] as string[],
+        importedProducts: [] as IProduct[]
+      };
+
+      for (let i = 0; i < products.length; i++) {
+        try {
+          const productData = products[i];
+          
+          // Validate required fields
+          if (!productData.name || !productData.price || !productData.category) {
+            results.errors.push(`Row ${i + 1}: Missing required fields (name, price, category)`);
+            results.errorCount++;
+            continue;
+          }
+
+          // Check if SKU already exists
+          let finalSku = productData.sku || `SKU-IMPORT-${Date.now()}-${i}`;
+          let counter = 1;
+          while (await Product.findOne({ sku: finalSku })) {
+            finalSku = `${productData.sku || `SKU-IMPORT-${Date.now()}-${i}`}-${counter}`;
+            counter++;
+          }
+
+          // Create product data
+          const newProductData: CreateProductData = {
+            name: productData.name,
+            description: productData.description || '',
+            price: parseFloat(productData.price) || 0,
+            category: productData.category,
+            sku: finalSku,
+            barcode: productData.barcode || undefined,
+            stock_quantity: parseInt(productData.stock_quantity) || 0,
+            min_stock_level: parseInt(productData.min_stock_level) || 5,
+            unit: productData.unit || 'piece',
+            weight: productData.weight,
+            dimensions: productData.dimensions,
+            tags: productData.tags || [],
+            is_featured: productData.is_featured || false,
+            created_by: createdBy,
+            store_id: storeId
+          };
+
+          // Create the product
+          const product = await Product.create(newProductData);
+          results.importedProducts.push(product);
+          results.successCount++;
+
+          logger.info(`Imported product: ${product.sku}`);
+        } catch (error: any) {
+          results.errors.push(`Row ${i + 1}: ${error.message || 'Import failed'}`);
+          results.errorCount++;
+          logger.error(`Failed to import product at row ${i + 1}:`, error);
+        }
+      }
+
+      logger.info(`Import completed: ${results.successCount} successful, ${results.errorCount} failed`);
+      return results;
+    } catch (error) {
+      logger.error('Import products error:', error);
       throw error;
     }
   }

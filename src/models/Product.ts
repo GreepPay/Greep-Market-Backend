@@ -47,12 +47,19 @@ const productSchema = new Schema<IProduct>({
     required: true,
     trim: true,
     maxlength: 200,
+    validate: {
+      validator: function(v: string) {
+        return v !== null && v !== undefined; // Allow empty strings but not null/undefined
+      },
+      message: 'Product name is required'
+    }
   },
   description: {
     type: String,
-    required: true,
+    required: false, // Changed to false to allow empty descriptions
     trim: true,
     maxlength: 1000,
+    default: '' // Provide default empty string
   },
   price: {
     type: Number,
@@ -63,6 +70,12 @@ const productSchema = new Schema<IProduct>({
     type: String,
     required: true,
     trim: true,
+    validate: {
+      validator: function(v: string) {
+        return v !== null && v !== undefined; // Allow empty strings but not null/undefined
+      },
+      message: 'Product category is required'
+    }
   },
   sku: {
     type: String,
@@ -70,6 +83,12 @@ const productSchema = new Schema<IProduct>({
     unique: true,
     trim: true,
     uppercase: true,
+    validate: {
+      validator: function(v: string) {
+        return v !== null && v !== undefined; // Allow empty strings but not null/undefined
+      },
+      message: 'Product SKU is required'
+    }
   },
   barcode: {
     type: String,
@@ -135,10 +154,22 @@ const productSchema = new Schema<IProduct>({
   created_by: {
     type: String,
     required: true,
+    validate: {
+      validator: function(v: string) {
+        return v !== null && v !== undefined; // Allow empty strings but not null/undefined
+      },
+      message: 'Created by user ID is required'
+    }
   },
   store_id: {
     type: String,
     required: true,
+    validate: {
+      validator: function(v: string) {
+        return v !== null && v !== undefined; // Allow empty strings but not null/undefined
+      },
+      message: 'Store ID is required'
+    }
   },
   created_at: {
     type: Date,
@@ -152,8 +183,7 @@ const productSchema = new Schema<IProduct>({
 
 // Indexes for better query performance
 productSchema.index({ name: 'text', description: 'text', tags: 'text' });
-productSchema.index({ sku: 1 });
-productSchema.index({ barcode: 1 });
+// Note: sku and barcode indexes are automatically created by unique: true
 productSchema.index({ category: 1 });
 productSchema.index({ store_id: 1 });
 productSchema.index({ is_active: 1 });
