@@ -110,7 +110,10 @@ export class AnalyticsService {
         topProductsData
       ] = await Promise.all([
         Product.countDocuments(productFilter),
-        Product.countDocuments({ ...productFilter, stock_quantity: { $lte: '$min_stock_level' } }),
+        Product.countDocuments({ 
+          ...productFilter, 
+          $expr: { $lte: ['$stock_quantity', '$min_stock_level'] }
+        }),
         Transaction.find({ 
           ...transactionFilter, 
           created_at: { $gte: startOfDay },
@@ -241,7 +244,15 @@ export class AnalyticsService {
       ] = await Promise.all([
         Product.countDocuments(filter),
         Product.countDocuments({ ...filter, is_active: true }),
-        Product.countDocuments({ ...filter, stock_quantity: { $lte: '$min_stock_level', $gt: 0 } }),
+        Product.countDocuments({ 
+          ...filter, 
+          $expr: { 
+            $and: [
+              { $lte: ['$stock_quantity', '$min_stock_level'] },
+              { $gt: ['$stock_quantity', 0] }
+            ]
+          }
+        }),
         Product.countDocuments({ ...filter, stock_quantity: 0 }),
         Product.aggregate([
           { $match: filter },
