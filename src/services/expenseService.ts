@@ -81,8 +81,17 @@ export class ExpenseService {
    */
   static async createExpense(expenseData: CreateExpenseData): Promise<ExpenseResponse> {
     try {
+      // Generate month_year from the date
+      const date = new Date(expenseData.date);
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      const monthYear = `${monthNames[date.getMonth()]} - ${date.getFullYear()}`;
+
       const expense = new Expense({
         ...expenseData,
+        month_year: monthYear,
         currency: expenseData.currency || 'TRY',
         category: expenseData.category || 'other',
       });

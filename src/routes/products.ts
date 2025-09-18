@@ -261,4 +261,70 @@ router.post('/import', uploadJsonFile('file'), async (req: Request, res: Respons
   }
 });
 
+/**
+ * Update product price
+ * PUT /api/v1/products/:id/price
+ */
+router.put('/:id/price', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { price, newPrice, priceChangeReason, reason, changedBy } = req.body;
+
+    // Handle both 'price' and 'newPrice' field names (frontend compatibility)
+    const actualPrice = price || newPrice;
+    const actualReason = priceChangeReason || reason;
+
+    if (actualPrice === undefined || actualPrice === null || actualPrice === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Price is required'
+      });
+    }
+
+    if (isNaN(parseFloat(actualPrice)) || parseFloat(actualPrice) < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Price must be a valid positive number'
+      });
+    }
+
+    const product = await ProductService.updateProduct(id, {
+      price: parseFloat(actualPrice),
+      priceChangeReason: actualReason || 'Price updated',
+      changedBy: changedBy || 'system'
+    });
+
+    res.json({
+      success: true,
+      message: 'Product price updated successfully',
+      data: product,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Get price history for a product
+ * GET /api/v1/products/:id/price-history
+ */
+router.get('/:id/price-history', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { limit } = req.query;
+    
+    const limitNumber = limit ? parseInt(limit as string) : 50;
+    
+    const priceHistory = await ProductService.getProductPriceHistory(id, limitNumber);
+    
+    res.json({
+      success: true,
+      message: 'Price history retrieved successfully',
+      data: priceHistory,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

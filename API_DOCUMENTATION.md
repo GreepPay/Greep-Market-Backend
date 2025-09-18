@@ -13,6 +13,7 @@ The Market Management System provides a comprehensive REST API for managing reta
 ## Authentication
 
 ### Register User
+
 ```http
 POST /api/v1/auth/register
 Content-Type: application/json
@@ -29,6 +30,7 @@ Content-Type: application/json
 ```
 
 ### Login
+
 ```http
 POST /api/v1/auth/login
 Content-Type: application/json
@@ -40,6 +42,7 @@ Content-Type: application/json
 ```
 
 ### Refresh Token
+
 ```http
 POST /api/v1/auth/refresh
 Content-Type: application/json
@@ -50,6 +53,7 @@ Content-Type: application/json
 ```
 
 ### Get Current User
+
 ```http
 GET /api/v1/auth/me
 Authorization: Bearer your-access-token
@@ -58,24 +62,28 @@ Authorization: Bearer your-access-token
 ## Products
 
 ### Get Products (with search and filtering)
+
 ```http
 GET /api/v1/products?store_id=uuid&search=product&category_id=uuid&min_price=10&max_price=100&page=1&limit=20
 Authorization: Bearer your-access-token
 ```
 
 ### Get Product by ID
+
 ```http
 GET /api/v1/products/{id}
 Authorization: Bearer your-access-token
 ```
 
 ### Get Product by Barcode
+
 ```http
 GET /api/v1/products/barcode/{barcode}
 Authorization: Bearer your-access-token
 ```
 
 ### Create Product
+
 ```http
 POST /api/v1/products
 Authorization: Bearer your-access-token
@@ -100,6 +108,7 @@ Content-Type: application/json
 ```
 
 ### Update Product
+
 ```http
 PUT /api/v1/products/{id}
 Authorization: Bearer your-access-token
@@ -112,6 +121,7 @@ Content-Type: application/json
 ```
 
 ### Update Product Pricing
+
 ```http
 PUT /api/v1/products/{id}/pricing
 Authorization: Bearer your-access-token
@@ -125,6 +135,7 @@ Content-Type: application/json
 ```
 
 ### Get Product Profit Margin
+
 ```http
 GET /api/v1/products/{id}/profit-margin
 Authorization: Bearer your-access-token
@@ -133,18 +144,21 @@ Authorization: Bearer your-access-token
 ## Inventory
 
 ### Get All Inventory Items
+
 ```http
 GET /api/v1/inventory?store_id=uuid&page=1&limit=50
 Authorization: Bearer your-access-token
 ```
 
 ### Get Product Inventory
+
 ```http
 GET /api/v1/inventory/{productId}?store_id=uuid
 Authorization: Bearer your-access-token
 ```
 
 ### Adjust Inventory
+
 ```http
 POST /api/v1/inventory/{productId}/adjust
 Authorization: Bearer your-access-token
@@ -161,6 +175,7 @@ Content-Type: application/json
 ```
 
 ### Reserve Stock
+
 ```http
 POST /api/v1/inventory/{productId}/reserve
 Authorization: Bearer your-access-token
@@ -173,6 +188,7 @@ Content-Type: application/json
 ```
 
 ### Release Reserved Stock
+
 ```http
 POST /api/v1/inventory/{productId}/release
 Authorization: Bearer your-access-token
@@ -185,12 +201,14 @@ Content-Type: application/json
 ```
 
 ### Get Low Stock Items
+
 ```http
 GET /api/v1/inventory/low-stock?store_id=uuid
 Authorization: Bearer your-access-token
 ```
 
 ### Perform Stock Count
+
 ```http
 POST /api/v1/inventory/stock-count
 Authorization: Bearer your-access-token
@@ -205,6 +223,7 @@ Content-Type: application/json
 ```
 
 ### Set Reorder Levels
+
 ```http
 PUT /api/v1/inventory/{productId}/reorder-levels
 Authorization: Bearer your-access-token
@@ -219,6 +238,7 @@ Content-Type: application/json
 ```
 
 ### Get Stock Movement History
+
 ```http
 GET /api/v1/inventory/{productId}/movements?start_date=2024-01-01&end_date=2024-01-31&store_id=uuid
 Authorization: Bearer your-access-token
@@ -227,18 +247,21 @@ Authorization: Bearer your-access-token
 ## Transactions
 
 ### Get Transactions
+
 ```http
 GET /api/v1/transactions?store_id=uuid&start_date=2024-01-01&end_date=2024-01-31&status=completed&page=1&limit=50
 Authorization: Bearer your-access-token
 ```
 
 ### Get Transaction by ID
+
 ```http
 GET /api/v1/transactions/{id}
 Authorization: Bearer your-access-token
 ```
 
 ### Create Transaction
+
 ```http
 POST /api/v1/transactions
 Authorization: Bearer your-access-token
@@ -261,6 +284,7 @@ Content-Type: application/json
 ```
 
 ### Process Payment
+
 ```http
 POST /api/v1/transactions/{id}/payment
 Authorization: Bearer your-access-token
@@ -274,12 +298,14 @@ Content-Type: application/json
 ```
 
 ### Complete Transaction
+
 ```http
 POST /api/v1/transactions/{id}/complete
 Authorization: Bearer your-access-token
 ```
 
 ### Void Transaction
+
 ```http
 POST /api/v1/transactions/{id}/void
 Authorization: Bearer your-access-token
@@ -291,6 +317,7 @@ Content-Type: application/json
 ```
 
 ### Process Return
+
 ```http
 POST /api/v1/transactions/{id}/return
 Authorization: Bearer your-access-token
@@ -310,6 +337,7 @@ Content-Type: application/json
 ```
 
 ### Issue Refund
+
 ```http
 POST /api/v1/transactions/{id}/refund
 Authorization: Bearer your-access-token
@@ -325,18 +353,21 @@ Content-Type: application/json
 ## Customers
 
 ### Get Customers
+
 ```http
 GET /api/v1/customers?store_id=uuid&page=1&limit=50
 Authorization: Bearer your-access-token
 ```
 
 ### Get Customer by ID
+
 ```http
 GET /api/v1/customers/{id}
 Authorization: Bearer your-access-token
 ```
 
 ### Create Customer
+
 ```http
 POST /api/v1/customers
 Authorization: Bearer your-access-token
@@ -354,6 +385,7 @@ Content-Type: application/json
 ```
 
 ### Update Customer
+
 ```http
 PUT /api/v1/customers/{id}
 Authorization: Bearer your-access-token
@@ -368,30 +400,35 @@ Content-Type: application/json
 ## Analytics
 
 ### Get Dashboard Analytics
+
 ```http
 GET /api/v1/analytics/dashboard?store_id=uuid&period=month
 Authorization: Bearer your-access-token
 ```
 
 ### Get Sales Analytics
+
 ```http
 GET /api/v1/analytics/sales?store_id=uuid&start_date=2024-01-01&end_date=2024-01-31
 Authorization: Bearer your-access-token
 ```
 
 ### Get Product Performance
+
 ```http
 GET /api/v1/analytics/products?store_id=uuid&period=week
 Authorization: Bearer your-access-token
 ```
 
 ### Get Inventory Analytics
+
 ```http
 GET /api/v1/analytics/inventory?store_id=uuid
 Authorization: Bearer your-access-token
 ```
 
 ### Get Customer Analytics
+
 ```http
 GET /api/v1/analytics/customers?store_id=uuid&period=month
 Authorization: Bearer your-access-token
@@ -400,28 +437,33 @@ Authorization: Bearer your-access-token
 ## Monitoring
 
 ### Health Check
+
 ```http
 GET /api/v1/monitoring/health
 ```
 
 ### Get System Metrics
+
 ```http
 GET /api/v1/monitoring/metrics
 Authorization: Bearer your-access-token
 ```
 
 ### Prometheus Metrics
+
 ```http
 GET /api/v1/monitoring/prometheus
 ```
 
 ### Database Statistics
+
 ```http
 GET /api/v1/monitoring/database
 Authorization: Bearer your-access-token
 ```
 
 ### Redis Statistics
+
 ```http
 GET /api/v1/monitoring/redis
 Authorization: Bearer your-access-token
@@ -467,10 +509,12 @@ All error responses follow this format:
 ## User Roles and Permissions
 
 ### Admin
+
 - Full system access
 - All permissions
 
 ### Owner
+
 - Store management
 - User management
 - Reports and analytics
@@ -480,6 +524,7 @@ All error responses follow this format:
 - Expense management
 
 ### Manager
+
 - Product and inventory management
 - Transaction viewing
 - Reports and analytics
@@ -487,6 +532,7 @@ All error responses follow this format:
 - Expense viewing
 
 ### Cashier
+
 - POS operations
 - Transaction creation
 - Inventory viewing
@@ -505,11 +551,13 @@ The system will support webhooks for real-time notifications:
 ## SDKs and Libraries
 
 ### JavaScript/TypeScript
+
 ```bash
 npm install @market-management/sdk
 ```
 
 ### Python
+
 ```bash
 pip install market-management-sdk
 ```
@@ -517,6 +565,7 @@ pip install market-management-sdk
 ## Support
 
 For API support and questions:
+
 - Documentation: `/api/docs`
 - Health Check: `/health`
 - Monitoring: `/api/v1/monitoring/health`

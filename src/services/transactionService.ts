@@ -10,7 +10,7 @@ export interface CreateTransactionData {
     unit_price: number;
     discount_amount?: number;
   }>;
-  payment_method: 'cash' | 'card' | 'transfer';
+  payment_method: 'cash' | 'card' | 'transfer' | 'pos';
   notes?: string;
   cashier_id: string;
 }
@@ -73,8 +73,8 @@ export class TransactionService {
       // Calculate totals
       const subtotal = itemsWithDetails.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
       const totalDiscount = itemsWithDetails.reduce((sum, item) => sum + (item.discount_amount || 0), 0);
-      const taxAmount = (subtotal - totalDiscount) * 0.20; // 20% tax rate
-      const totalAmount = subtotal - totalDiscount + taxAmount;
+      const taxAmount = 0; // No automatic tax calculation
+      const totalAmount = subtotal - totalDiscount; // Total = subtotal - discounts (no tax)
 
       // Create transaction
       const transaction = new Transaction({

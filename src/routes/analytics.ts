@@ -15,7 +15,8 @@ router.use(authenticate);
  */
 router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
   try {
-    const storeId = req.query.store_id as string;
+    // Use authenticated user's store_id instead of query parameter
+    const storeId = (req as any).user.storeId || 'default-store';
     const metrics = await AnalyticsService.getDashboardMetrics(storeId);
     
     res.json({
@@ -38,12 +39,25 @@ router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
  * @access  Private
  */
 router.get('/sales', asyncHandler(async (req, res) => {
-  // TODO: Implement sales analytics
-  res.json({
-    success: true,
-    message: 'Sales analytics endpoint - to be implemented',
-    data: null,
-  });
+  try {
+    const { period = '30d' } = req.query;
+    // Use authenticated user's store_id instead of query parameter
+    const storeId = (req as any).user.storeId || 'default-store';
+    
+    const salesData = await AnalyticsService.getSalesAnalytics(storeId, period as string);
+    
+    res.json({
+      success: true,
+      data: salesData,
+    });
+  } catch (error) {
+    console.error('Error getting sales analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get sales analytics',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
 }));
 
 /**
@@ -52,12 +66,25 @@ router.get('/sales', asyncHandler(async (req, res) => {
  * @access  Private
  */
 router.get('/products', asyncHandler(async (req, res) => {
-  // TODO: Implement product performance analytics
-  res.json({
-    success: true,
-    message: 'Product performance analytics endpoint - to be implemented',
-    data: null,
-  });
+  try {
+    const { period = '30d', limit = 10 } = req.query;
+    // Use authenticated user's store_id instead of query parameter
+    const storeId = (req as any).user.storeId || 'default-store';
+    
+    const productData = await AnalyticsService.getProductAnalytics(storeId);
+    
+    res.json({
+      success: true,
+      data: productData,
+    });
+  } catch (error) {
+    console.error('Error getting product analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get product analytics',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
 }));
 
 /**

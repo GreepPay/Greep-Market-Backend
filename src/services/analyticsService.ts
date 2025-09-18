@@ -4,6 +4,9 @@ import { User } from '../models/User';
 
 export interface DashboardMetrics {
   totalSales: number;
+  totalTransactions: number;
+  averageTransactionValue: number;
+  growthRate: number;
   totalProducts: number;
   lowStockItems: number;
   todaySales: number;
@@ -139,11 +142,21 @@ export class AnalyticsService {
         { $group: { _id: null, total: { $sum: '$total_amount' } } }
       ]);
 
+      // Calculate transaction count and average transaction value
+      const totalTransactions = await Transaction.countDocuments({ ...transactionFilter, status: 'completed' });
+      const averageTransactionValue = totalTransactions > 0 ? (totalSales[0]?.total || 0) / totalTransactions : 0;
+
+      // Calculate growth rate (current month vs previous month)
+      const growthRate = await this.calculateGrowthRate(storeId);
+
       // Get sales by month for the last 12 months
       const salesByMonth = await this.getSalesByMonth(storeId);
 
       return {
         totalSales: totalSales[0]?.total || 0,
+        totalTransactions,
+        averageTransactionValue,
+        growthRate,
         totalProducts,
         lowStockItems: lowStockProducts,
         todaySales,
@@ -176,14 +189,22 @@ export class AnalyticsService {
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
         dateFilter = { created_at: { $gte: startOfDay } };
-      } else if (period === 'week') {
+      } else if (period === 'week' || period === '7d') {
         const startOfWeek = new Date();
         startOfWeek.setDate(startOfWeek.getDate() - 7);
         dateFilter = { created_at: { $gte: startOfWeek } };
-      } else if (period === 'month') {
+      } else if (period === 'month' || period === '30d') {
         const startOfMonth = new Date();
-        startOfMonth.setMonth(startOfMonth.getMonth() - 1);
+        startOfMonth.setDate(startOfMonth.getDate() - 30);
         dateFilter = { created_at: { $gte: startOfMonth } };
+      } else if (period === '90d') {
+        const startOfPeriod = new Date();
+        startOfPeriod.setDate(startOfPeriod.getDate() - 90);
+        dateFilter = { created_at: { $gte: startOfPeriod } };
+      } else if (period === 'year') {
+        const startOfYear = new Date();
+        startOfYear.setFullYear(startOfYear.getFullYear() - 1);
+        dateFilter = { created_at: { $gte: startOfYear } };
       }
 
       const transactions = await Transaction.find({ ...filter, ...dateFilter });
@@ -403,6 +424,44 @@ export class AnalyticsService {
     } catch (error) {
       console.error('Error getting sales by month:', error);
       return [];
+    }
+  }
+
+  /**
+   * Calculate growth rate (current month vs previous month)
+   */
+  private static async calculateGrowthRate(storeId?: string): Promise<number> {
+    try {
+      const now = new Date();
+      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+      const filter = storeId ? { store_id: storeId, status: 'completed' } : { status: 'completed' };
+
+      const [currentMonthSales, previousMonthSales] = await Promise.all([
+        Transaction.aggregate([
+          { $match: { ...filter, created_at: { $gte: currentMonthStart } } },
+          { $group: { _id: null, total: { $sum: '$total_amount' } } }
+        ]),
+        Transaction.aggregate([
+          { $match: { ...filter, created_at: { $gte: previousMonthStart, $lte: previousMonthEnd } } },
+          { $group: { _id: null, total: { $sum: '$total_amount' } } }
+        ])
+      ]);
+
+      const currentTotal = currentMonthSales[0]?.total || 0;
+      const previousTotal = previousMonthSales[0]?.total || 0;
+
+      if (previousTotal === 0) {
+        return currentTotal > 0 ? 100 : 0; // 100% growth if no previous data but current exists
+      }
+
+      const growthRate = ((currentTotal - previousTotal) / previousTotal) * 100;
+      return Math.round(growthRate * 100) / 100; // Round to 2 decimal places
+    } catch (error) {
+      console.error('Error calculating growth rate:', error);
+      return 0;
     }
   }
 

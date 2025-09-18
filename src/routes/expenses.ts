@@ -35,7 +35,8 @@ router.get('/', [
 
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
-    const storeId = req.query.store_id as string;
+    // Use authenticated user's store_id instead of query parameter
+    const storeId = (req as any).user.storeId || 'default-store';
     const category = req.query.category as string;
     const paymentMethod = req.query.payment_method as string;
     const startDate = req.query.start_date ? new Date(req.query.start_date as string) : undefined;
@@ -92,7 +93,8 @@ router.get('/stats', [
       });
     }
 
-    const storeId = req.query.store_id as string;
+    // Use authenticated user's store_id instead of query parameter
+    const storeId = (req as any).user.storeId || 'default-store';
     const startDate = req.query.start_date ? new Date(req.query.start_date as string) : undefined;
     const endDate = req.query.end_date ? new Date(req.query.end_date as string) : undefined;
 
@@ -131,7 +133,8 @@ router.get('/monthly/:year', [
     }
 
     const year = parseInt(req.params.year);
-    const storeId = req.query.store_id as string;
+    // Use authenticated user's store_id instead of query parameter
+    const storeId = (req as any).user.storeId || 'default-store';
 
     const monthlySummary = await ExpenseService.getMonthlyExpenseSummary(year, storeId);
     
@@ -196,7 +199,7 @@ router.get('/:id', [
  * @access  Private
  */
 router.post('/', [
-  body('store_id').notEmpty().withMessage('Store ID is required'),
+  // Remove store_id validation since we'll set it automatically from the authenticated user
   body('date').isISO8601().withMessage('Date must be a valid date'),
   body('product_name').notEmpty().trim().withMessage('Product name is required'),
   body('unit').isIn(['pieces', 'kgs', 'liters', 'boxes', 'packets', 'other']).withMessage('Invalid unit'),
@@ -221,6 +224,7 @@ router.post('/', [
 
     const expenseData = {
       ...req.body,
+      store_id: (req as any).user.storeId || 'default-store', // Set from authenticated user
       created_by: (req as any).user.id, // From auth middleware
     };
 

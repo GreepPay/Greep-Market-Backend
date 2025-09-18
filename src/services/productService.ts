@@ -1,4 +1,5 @@
 import { Product, IProduct } from '../models/Product';
+import { ProductPriceHistory } from '../models/ProductPriceHistory';
 import { CloudinaryService } from '../config/cloudinary';
 import { logger } from '../utils/logger';
 import { CustomError, validationError } from '../middleware/errorHandler';
@@ -28,6 +29,8 @@ export interface CreateProductData {
 
 export interface UpdateProductData extends Partial<CreateProductData> {
   is_active?: boolean;
+  priceChangeReason?: string;
+  changedBy?: string;
 }
 
 export class ProductService {
@@ -334,12 +337,25 @@ export class ProductService {
         }
       }
 
+      // Track price change if price is being updated
+      const oldPrice = product.price;
+      if (updateData.price !== undefined && updateData.price !== oldPrice) {
+        await this.trackPriceChange(
+          productId,
+          oldPrice,
+          updateData.price,
+          updateData.priceChangeReason || 'Price updated',
+          updateData.changedBy || 'system',
+          product.store_id
+        );
+      }
+
       // Update product
       Object.assign(product, updateData);
       await product.save();
 
       logger.info(`Product updated: ${product.sku}`);
-        return product;
+      return product;
     } catch (error) {
       logger.error('Update product error:', error);
       throw error;
@@ -562,6 +578,58 @@ export class ProductService {
     } catch (error) {
       logger.error('Import products error:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get price history for a product
+   */
+  static async getProductPriceHistory(
+    productId: string,
+    limit: number = 50
+  ): Promise<any[]> {
+    try {
+      const priceHistory = await ProductPriceHistory.find({ product_id: productId })
+        .sort({ changed_at: -1 })
+        .limit(limit)
+        .lean();
+
+      return priceHistory;
+    } catch (error) {
+      logger.error('Get product price history error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Track price change when updating a product
+   */
+  static async trackPriceChange(
+    productId: string,
+    oldPrice: number,
+    newPrice: number,
+    changeReason: string,
+    changedBy: string,
+    storeId: string
+  ): Promise<void> {
+    try {
+      // Only track if price actually changed
+      if (oldPrice !== newPrice) {
+        await ProductPriceHistory.create({
+          product_id: productId,
+          store_id: storeId,
+          old_price: oldPrice,
+          new_price: newPrice,
+          change_reason: changeReason,
+          changed_by: changedBy,
+          changed_at: new Date(),
+        });
+
+        logger.info(`Price change tracked for product ${productId}: ${oldPrice} -> ${newPrice}`);
+      }
+    } catch (error) {
+      logger.error('Track price change error:', error);
+      // Don't throw error here as it shouldn't break the main product update
     }
   }
 }

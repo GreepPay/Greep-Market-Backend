@@ -27,6 +27,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      // Log the missing auth for debugging
+      logger.warn(`Missing authorization header for ${req.method} ${req.path} from ${req.ip}`);
       throw unauthorizedError('Access token required');
     }
 
@@ -115,6 +117,98 @@ export const requireStoreAccess = (req: Request, res: Response, next: NextFuncti
   }
 
   next();
+};
+
+/**
+ * Robust authentication middleware with automatic token refresh
+ */
+export const robustAuthenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      logger.warn(`Missing authorization header for ${req.method} ${req.path} from ${req.ip}`);
+      throw unauthorizedError('Access token required');
+    }
+
+    const token = authHeader.substring(7);
+
+    try {
+      // Check if token is blacklisted
+      const isBlacklisted = await authService.isTokenBlacklisted(token);
+      if (isBlacklisted) {
+        throw unauthorizedError('Token has been revoked');
+      }
+
+      // Verify token
+      const decoded = jwt.verify(token, config.jwt.secret) as TokenPayload;
+
+      // Get user from cache or database
+      const user = await authService.getUserById(decoded.userId);
+      if (!user) {
+        throw unauthorizedError('User not found');
+      }
+
+      if (!user.is_active) {
+        throw unauthorizedError('Account is deactivated');
+      }
+
+      // Attach user to request
+      req.user = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        storeId: user.store_id || undefined,
+      };
+
+      next();
+    } catch (tokenError) {
+      // If token is expired, try to refresh it
+      if ((tokenError as any).name === 'TokenExpiredError') {
+        logger.info(`Token expired for ${req.path}, attempting refresh`);
+        
+        // Check if there's a refresh token in the request
+        const refreshToken = req.headers['x-refresh-token'] as string;
+        if (refreshToken) {
+          try {
+            const refreshResult = await authService.refreshToken(refreshToken);
+            
+            // Set new tokens in response headers
+            res.setHeader('X-New-Access-Token', refreshResult.accessToken);
+            res.setHeader('X-New-Refresh-Token', refreshResult.refreshToken);
+            
+            // Continue with the new token
+            const newDecoded = jwt.verify(refreshResult.accessToken, config.jwt.secret) as TokenPayload;
+            const user = await authService.getUserById(newDecoded.userId);
+            
+            if (user && user.is_active) {
+              req.user = {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+                storeId: user.store_id || undefined,
+              };
+              next();
+              return;
+            }
+          } catch (refreshError) {
+            logger.warn(`Token refresh failed for ${req.path}:`, refreshError);
+          }
+        }
+      }
+      
+      // If we get here, authentication failed
+      throw tokenError;
+    }
+  } catch (error) {
+    if ((error as any).name === 'JsonWebTokenError') {
+      next(unauthorizedError('Invalid token'));
+    } else if ((error as any).name === 'TokenExpiredError') {
+      next(unauthorizedError('Token expired'));
+    } else {
+      next(error);
+    }
+  }
 };
 
 /**

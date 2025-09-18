@@ -17,7 +17,9 @@
     "db:seed": "knex seed:run",
     "docker:build": "docker build -t market-management-api .",
     "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down"
+    "docker:down": "docker-compose down",
+    "clear:sales": "node scripts/clear-sales.js",
+    "clear:data": "node scripts/clear-data.js"
   },
   "keywords": [
     "market-management",
