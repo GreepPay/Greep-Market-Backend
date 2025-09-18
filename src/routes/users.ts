@@ -1,13 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { UserService } from '../services/userService';
-import { authMiddleware } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 import { validateRequest } from '../middleware/validation';
 import { body, param, query } from 'express-validator';
 
 const router = Router();
 
 // Apply authentication middleware to all routes
-router.use(authMiddleware);
+router.use(authenticate);
 
 // Validation middleware
 const createUserValidation = [
