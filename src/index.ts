@@ -14,14 +14,14 @@ import { notFoundHandler } from './middleware/notFoundHandler';
 // import { requestMonitoring, performanceMonitoring, errorMonitoring } from './middleware/monitoring';
 
 // Import routes
-// import authRoutes from './routes/auth';
-// import userRoutes from './routes/users';
-// import storeRoutes from './routes/stores';
+import authRoutes from './routes/auth';
+import userRoutes from './routes/users';
+import storeRoutes from './routes/stores';
 import productRoutes from './routes/products';
-// import inventoryRoutes from './routes/inventory';
-// import transactionRoutes from './routes/transactions';
-// import customerRoutes from './routes/customers';
-// import analyticsRoutes from './routes/analytics';
+import inventoryRoutes from './routes/inventory';
+import transactionRoutes from './routes/transactions';
+import customerRoutes from './routes/customers';
+import analyticsRoutes from './routes/analytics';
 // import monitoringRoutes from './routes/monitoring';
 
 class App {
@@ -119,15 +119,15 @@ class App {
   private initializeRoutes(): void {
     const apiPrefix = `/api/${config.app.version}`;
 
-    // API routes (temporarily disabled for basic startup)
-    // this.app.use(`${apiPrefix}/auth`, authRoutes);
-    // this.app.use(`${apiPrefix}/users`, userRoutes);
-    // this.app.use(`${apiPrefix}/stores`, storeRoutes);
+    // API routes
+    this.app.use(`${apiPrefix}/auth`, authRoutes);
+    this.app.use(`${apiPrefix}/users`, userRoutes);
+    this.app.use(`${apiPrefix}/stores`, storeRoutes);
     this.app.use(`${apiPrefix}/products`, productRoutes);
-    // this.app.use(`${apiPrefix}/inventory`, inventoryRoutes);
-    // this.app.use(`${apiPrefix}/transactions`, transactionRoutes);
-    // this.app.use(`${apiPrefix}/customers`, customerRoutes);
-    // this.app.use(`${apiPrefix}/analytics`, analyticsRoutes);
+    this.app.use(`${apiPrefix}/inventory`, inventoryRoutes);
+    this.app.use(`${apiPrefix}/transactions`, transactionRoutes);
+    this.app.use(`${apiPrefix}/customers`, customerRoutes);
+    this.app.use(`${apiPrefix}/analytics`, analyticsRoutes);
     // this.app.use(`${apiPrefix}/monitoring`, monitoringRoutes);
 
     // Root endpoint
