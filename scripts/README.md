@@ -1,101 +1,155 @@
-# Database Management Scripts
+# Setup Scripts
 
-This directory contains scripts for managing and clearing database data.
+This directory contains scripts for setting up the application for production deployment.
 
-## Available Scripts
+## Scripts Overview
 
-### 1. Clear Sales Only
+### 1. `setup-admin.js`
+
+Simple script to create or update an admin user with the specified credentials.
+
+**Usage:**
 
 ```bash
-# Using npm script (recommended)
-npm run clear:sales
-
-# Or directly
-node scripts/clear-sales.js
+node scripts/setup-admin.js
 ```
 
 **What it does:**
 
-- Deletes all transactions/sales from the database
-- Keeps products, users, and other data intact
-- Shows count of deleted transactions
+- Creates or updates admin user: `aguntawisdom@gmail.com`
+- Sets password to: `qwerty1234`
+- Sets role to: `admin`
+- Assigns to default store
 
-### 2. Advanced Data Clearing
+### 2. `setup-production.js`
 
-```bash
-# Using npm script
-npm run clear:data [options]
+Comprehensive production setup script with additional features.
 
-# Or directly
-node scripts/clear-data.js [options]
-```
-
-**Options:**
-
-- `--products` - Also clear all products
-- `--expenses` - Also clear all expenses
-- `--users` - Clear non-admin users (keeps admin users)
-- `--store=store-id` - Clear data for specific store only
-
-**Examples:**
+**Usage:**
 
 ```bash
-# Clear only sales (default)
-npm run clear:data
+# Basic setup
+node scripts/setup-production.js
 
-# Clear sales and products
-npm run clear:data --products
+# Custom credentials
+node scripts/setup-production.js --email admin@example.com --password mypassword
 
-# Clear everything except admin users
-npm run clear:data --products --expenses
-
-# Clear data for specific store
-npm run clear:data --store=default-store
-
-# Clear everything for a store
-npm run clear:data --store=store123 --products --expenses
+# Help
+node scripts/setup-production.js --help
 ```
 
-## Safety Features
+**What it does:**
 
-- ✅ **Admin Protection**: `--users` option never deletes admin users
-- ✅ **Confirmation**: Scripts show what will be deleted before proceeding
-- ✅ **Count Display**: Shows exact number of records deleted
-- ✅ **Error Handling**: Graceful error handling with clear messages
-- ✅ **Connection Management**: Properly closes database connections
+- Creates/updates admin user
+- Creates sample data (if none exists)
+- Verifies setup
+- Displays comprehensive setup information
 
-## Use Cases
+### 3. `setup-admin.sh`
 
-### Development/Testing
+Shell script wrapper for easy execution.
+
+**Usage:**
 
 ```bash
-# Clear test data after testing
-npm run clear:sales
+# Make executable (first time only)
+chmod +x scripts/setup-admin.sh
+
+# Run setup
+./scripts/setup-admin.sh
 ```
 
-### Store Reset
+**What it does:**
+
+- Checks Node.js and npm installation
+- Installs dependencies if needed
+- Builds the project
+- Runs admin setup
+- Displays credentials
+
+## Production Deployment
+
+### Quick Setup
+
+For quick production deployment, use the shell script:
 
 ```bash
-# Reset a specific store completely
-npm run clear:data --store=store123 --products --expenses
+./scripts/setup-admin.sh
 ```
 
-### Fresh Start
+### Manual Setup
+
+For more control, run the scripts manually:
 
 ```bash
-# Clear everything for a complete reset (keeps admin users)
-npm run clear:data --products --expenses --users
+# Install dependencies
+npm install
+
+# Build project
+npm run build
+
+# Setup admin user
+node scripts/setup-admin.js
 ```
 
-## ⚠️ Important Notes
+## Default Admin Credentials
 
-- **Backup First**: Always backup your data before running these scripts
-- **Production Warning**: Be extremely careful when running these in production
-- **Admin Users**: Admin users are never deleted by these scripts
-- **Irreversible**: These operations cannot be undone
+After running any setup script, you can log in with:
 
-## Environment Requirements
+- **Email:** `aguntawisdom@gmail.com`
+- **Password:** `qwerty1234`
+- **Role:** `admin`
 
-- Node.js installed
-- MongoDB connection configured in `.env`
-- Database models compiled (`npm run build`)
+## Security Notes
+
+⚠️ **IMPORTANT:**
+
+1. Change the admin password after first login
+2. Ensure MongoDB connection is secure
+3. Use HTTPS in production
+4. Set up proper environment variables
+5. Configure proper CORS settings
+
+## Environment Variables
+
+Make sure these environment variables are set:
+
+```bash
+MONGODB_URI=mongodb://your-mongodb-connection-string
+JWT_SECRET=your-jwt-secret-key
+NODE_ENV=production
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **MongoDB Connection Error**
+   - Check if MongoDB is running
+   - Verify MONGODB_URI environment variable
+   - Ensure network connectivity
+
+2. **Build Errors**
+   - Run `npm install` to install dependencies
+   - Check Node.js version compatibility
+   - Clear node_modules and reinstall if needed
+
+3. **Permission Errors**
+   - Make sure scripts are executable: `chmod +x scripts/*.sh`
+   - Check file permissions
+
+### Logs
+
+Check the application logs for detailed error information:
+
+- Application logs: `logs/combined-*.log`
+- Error logs: `logs/error-*.log`
+
+## Support
+
+If you encounter issues:
+
+1. Check the logs for error details
+2. Verify environment variables
+3. Ensure all dependencies are installed
+4. Check MongoDB connectivity
