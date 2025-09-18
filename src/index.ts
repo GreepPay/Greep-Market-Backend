@@ -22,6 +22,7 @@ import inventoryRoutes from './routes/inventory';
 import transactionRoutes from './routes/transactions';
 import customerRoutes from './routes/customers';
 import analyticsRoutes from './routes/analytics';
+import expenseRoutes from './routes/expenses';
 // import monitoringRoutes from './routes/monitoring';
 
 class App {
@@ -128,6 +129,7 @@ class App {
     this.app.use(`${apiPrefix}/transactions`, transactionRoutes);
     this.app.use(`${apiPrefix}/customers`, customerRoutes);
     this.app.use(`${apiPrefix}/analytics`, analyticsRoutes);
+    this.app.use(`${apiPrefix}/expenses`, expenseRoutes);
     // this.app.use(`${apiPrefix}/monitoring`, monitoringRoutes);
 
     // Root endpoint
