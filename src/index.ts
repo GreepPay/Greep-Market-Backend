@@ -69,17 +69,17 @@ class App {
     // this.app.use(requestMonitoring);
     // this.app.use(performanceMonitoring);
 
-    // Rate limiting
-    const limiter = rateLimit({
-      windowMs: config.rateLimit.windowMs,
-      max: config.rateLimit.maxRequests,
-      message: {
-        error: 'Too many requests from this IP, please try again later.',
-      },
-      standardHeaders: true,
-      legacyHeaders: false,
-    });
-    this.app.use('/api/', limiter);
+    // Rate limiting - DISABLED
+    // const limiter = rateLimit({
+    //   windowMs: config.rateLimit.windowMs,
+    //   max: config.rateLimit.maxRequests,
+    //   message: {
+    //     error: 'Too many requests from this IP, please try again later.',
+    //   },
+    //   standardHeaders: true,
+    //   legacyHeaders: false,
+    // });
+    // this.app.use('/api/', limiter);
 
     // Body parsing
     this.app.use(express.json({ limit: '10mb' }));

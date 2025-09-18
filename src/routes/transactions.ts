@@ -1,6 +1,7 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
+import { TransactionService } from '../services/transactionService';
 
 const router = Router();
 
@@ -12,13 +13,34 @@ router.use(authenticate);
  * @desc    Get transactions
  * @access  Private
  */
-router.get('/', asyncHandler(async (req, res) => {
-  // Mock response for now
-  res.json({
-    success: true,
-    data: [],
-    message: 'Transactions endpoint - to be implemented'
-  });
+router.get('/', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const storeId = req.query.store_id as string;
+    const status = req.query.status as string;
+    const paymentMethod = req.query.payment_method as string;
+
+    const result = await TransactionService.getTransactions(page, limit, storeId, status, paymentMethod);
+    
+    res.json({
+      success: true,
+      data: result.transactions,
+      pagination: {
+        total: result.total,
+        page: result.page,
+        pages: result.pages,
+        limit
+      }
+    });
+  } catch (error) {
+    console.error('Error getting transactions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get transactions',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
 }));
 
 /**

@@ -1,6 +1,7 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
+import { AnalyticsService } from '../services/analyticsService';
 
 const router = Router();
 
@@ -12,13 +13,23 @@ router.use(authenticate);
  * @desc    Get dashboard analytics
  * @access  Private
  */
-router.get('/dashboard', asyncHandler(async (req, res) => {
-  // TODO: Implement dashboard analytics
-  res.json({
-    success: true,
-    message: 'Dashboard analytics endpoint - to be implemented',
-    data: null,
-  });
+router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const storeId = req.query.store_id as string;
+    const metrics = await AnalyticsService.getDashboardMetrics(storeId);
+    
+    res.json({
+      success: true,
+      data: metrics,
+    });
+  } catch (error) {
+    console.error('Error getting dashboard metrics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get dashboard metrics',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
 }));
 
 /**

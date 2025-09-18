@@ -1,6 +1,7 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
+import { InventoryService } from '../services/inventoryService';
 
 const router = Router();
 
@@ -26,13 +27,23 @@ router.get('/', asyncHandler(async (req, res) => {
  * @desc    Get low stock items
  * @access  Private
  */
-router.get('/low-stock', asyncHandler(async (req, res) => {
-  // Mock response for now
-  res.json({
-    success: true,
-    data: [],
-    message: 'Low stock endpoint - to be implemented'
-  });
+router.get('/low-stock', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const storeId = req.query.store_id as string;
+    const lowStockItems = await InventoryService.getLowStockItems(storeId);
+    
+    res.json({
+      success: true,
+      data: lowStockItems,
+    });
+  } catch (error) {
+    console.error('Error getting low stock items:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get low stock items',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
 }));
 
 /**
