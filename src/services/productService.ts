@@ -509,10 +509,31 @@ export class ProductService {
     importedProducts: IProduct[];
   }> {
     try {
-      const { products } = importData;
+      logger.info('Import data received:', { 
+        hasProducts: !!importData.products, 
+        isArray: Array.isArray(importData),
+        hasData: !!importData.data,
+        keys: Object.keys(importData || {})
+      });
       
-      if (!products || !Array.isArray(products)) {
-        throw validationError('Invalid import data: products array not found');
+      let products;
+      
+      // Handle different JSON structures
+      if (importData.products && Array.isArray(importData.products)) {
+        // Standard export format: { products: [...], exportDate: ..., storeId: ... }
+        products = importData.products;
+        logger.info(`Found ${products.length} products in standard format`);
+      } else if (Array.isArray(importData)) {
+        // Direct array format: [...]
+        products = importData;
+        logger.info(`Found ${products.length} products in direct array format`);
+      } else if (importData.data && Array.isArray(importData.data)) {
+        // Alternative format: { data: [...] }
+        products = importData.data;
+        logger.info(`Found ${products.length} products in data format`);
+      } else {
+        logger.error('Invalid import data structure:', importData);
+        throw validationError('Invalid import data: products array not found. Expected format: { products: [...] } or direct array');
       }
 
       const results = {
