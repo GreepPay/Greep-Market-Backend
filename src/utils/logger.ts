@@ -92,14 +92,7 @@ logger.rejections.handle(
   new winston.transports.File({ filename: 'logs/rejections.log' })
 );
 
-// Development logging
-if (config.app.env !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    ),
-  }));
-}
+// Console transport is already included in the transports array above
+// No need to add another one for development
 
 export default logger;

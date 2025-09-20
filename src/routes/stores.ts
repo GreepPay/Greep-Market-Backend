@@ -76,4 +76,60 @@ router.delete('/:id', authorize('admin', 'owner'), asyncHandler(async (req, res)
   });
 }));
 
+/**
+ * @route   GET /api/v1/stores/settings
+ * @desc    Get store settings
+ * @access  Private
+ */
+router.get('/settings', asyncHandler(async (req, res) => {
+  const { store_id } = req.query;
+  
+  // For now, return mock data based on store_id
+  const mockSettings = {
+    name: 'Greep Market',
+    address: '123 Market Street, Istanbul, Turkey',
+    phone: '+90 555 123 4567',
+    email: 'info@greepmarket.com',
+    currency: 'TRY',
+    timezone: 'Europe/Istanbul',
+    tax_rate: 0,
+    low_stock_threshold: 10
+  };
+
+  res.json({
+    success: true,
+    message: 'Store settings retrieved successfully',
+    data: mockSettings,
+  });
+}));
+
+/**
+ * @route   PUT /api/v1/stores/:id/settings
+ * @desc    Update store settings
+ * @access  Private (admin/owner/manager only)
+ */
+router.put('/:id/settings', authorize('admin', 'owner', 'manager'), asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const settings = req.body;
+
+  // For now, just return the updated settings
+  // In a real implementation, you would save this to the database
+  const updatedSettings = {
+    name: settings.name || 'Greep Market',
+    address: settings.address || '123 Market Street, Istanbul, Turkey',
+    phone: settings.phone || '+90 555 123 4567',
+    email: settings.email || 'info@greepmarket.com',
+    currency: settings.currency || 'TRY',
+    timezone: settings.timezone || 'Europe/Istanbul',
+    tax_rate: settings.tax_rate || 0,
+    low_stock_threshold: settings.low_stock_threshold || 10
+  };
+
+  res.json({
+    success: true,
+    message: 'Store settings updated successfully',
+    data: updatedSettings,
+  });
+}));
+
 export default router;
