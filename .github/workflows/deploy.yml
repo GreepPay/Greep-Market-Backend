@@ -1,0 +1,70 @@
+name: Deploy to Staging and Production
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  deploy-production:
+    if: github.ref == 'refs/heads/prod'
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: "${{ secrets.SSH_HOST }}"
+          username: "${{ secrets.SSH_USER }}"
+          key: "${{ secrets.SSH_PRIVATE_KEY }}"
+          script: |
+            cd ~/GreepAppConfigs/greep-shop-api
+
+            # Collect secrets into EARTHLY_BUILD_ARGS
+            export EARTHLY_BUILD_ARGS=""
+
+            # Add secret environment variables to EARTHLY_BUILD_ARGS
+
+            # Default secrets
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}AZURE_KUBERNETES_CLUSTER_NAME=${{ secrets.AZURE_KUBERNETES_CLUSTER_NAME }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}AZURE_REGISTRY_NAME=${{ secrets.AZURE_REGISTRY_NAME }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}AZURE_RESOURCE_GROUP=${{ secrets.AZURE_RESOURCE_GROUP }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}AZURE_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}SSH_HOST=${{ secrets.SSH_HOST }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}SSH_PRIVATE_KEY=${{ secrets.SSH_PRIVATE_KEY }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}SSH_USER=${{ secrets.SSH_USER }},"
+
+
+            # Additional secrets
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}JWT_SECRET=${{ secrets.JWT_SECRET }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}EMAIL_USER=${{ secrets.EMAIL_USER }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }},"
+
+
+            # Add general variables to EARTHLY_BUILD_ARGS
+
+            # Default variables
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}CRD_CONTROLLER_NAME=${{ vars.CRD_CONTROLLER_NAME }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}CRD_GROUP=${{ vars.CRD_GROUP }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}CRD_KIND=${{ vars.CRD_KIND }},"
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}DOCKER_REGISTRY=${{ vars.DOCKER_REGISTRY }},"
+
+            # Additional variables
+            export EARTHLY_BUILD_ARGS="${EARTHLY_BUILD_ARGS}YELLOW_CARD_BASE_URL=${{ vars.YELLOW_CARD_BASE_URL_PROD }},"
+
+
+            # Remove trailing comma (if any)
+            export EARTHLY_BUILD_ARGS=$(echo $EARTHLY_BUILD_ARGS | sed 's/,$//')
+
+            # Run earthly with the dynamically created EARTHLY_BUILD_ARGS
+            earthly --no-cache +setup --envs=${{ github.ref_name }} --apptype="nodejs" --service="greep-student-api" && az acr login --name ${{ secrets.AZURE_REGISTRY_NAME }} && earthly --push +build --envs=${{ github.ref_name }} --version=${{ github.run_number }} --apptype="nodejs" --service="greep-student-api" && earthly --no-cache +deploy --envs=${{ github.ref_name }} --version=${{ github.run_number }}  --apptype="nodejs" --service="greep-student-api"
