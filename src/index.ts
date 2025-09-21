@@ -25,6 +25,7 @@ import analyticsRoutes from './routes/analytics';
 import expenseRoutes from './routes/expenses';
 import goalRoutes from './routes/goals';
 import auditRoutes from './routes/audit';
+import settingsRoutes from './routes/settings';
 // import monitoringRoutes from './routes/monitoring';
 
 class App {
@@ -130,6 +131,7 @@ class App {
       this.app.use(`${apiPrefix}/expenses`, expenseRoutes);
       this.app.use(`${apiPrefix}/goals`, goalRoutes);
       this.app.use(`${apiPrefix}/audit`, auditRoutes);
+      this.app.use(`${apiPrefix}/settings`, settingsRoutes);
     // this.app.use(`${apiPrefix}/monitoring`, monitoringRoutes);
 
     // Root endpoint

@@ -19,7 +19,9 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "clear:sales": "node scripts/clear-sales.js",
-    "clear:data": "node scripts/clear-data.js"
+    "clear:data": "node scripts/clear-data.js",
+    "migrate:products": "node scripts/migrate-products.js",
+    "migrate:setup": "node scripts/setup-migration.js"
   },
   "keywords": [
     "market-management",

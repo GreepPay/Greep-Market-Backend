@@ -1,155 +1,200 @@
-# Setup Scripts
+# Product Migration Script
 
-This directory contains scripts for setting up the application for production deployment.
+This script allows you to copy all products from your development environment to your production environment safely.
 
-## Scripts Overview
+## Features
 
-### 1. `setup-admin.js`
+- ✅ **Safe Migration**: Skips products that already exist (based on SKU)
+- ✅ **Complete Product Data**: Migrates all product information including images, pricing, inventory, etc.
+- ✅ **Error Handling**: Continues migration even if individual products fail
+- ✅ **Progress Tracking**: Shows real-time progress and detailed statistics
+- ✅ **Validation**: Validates migration success after completion
+- ✅ **Logging**: Comprehensive logging of all operations
 
-Simple script to create or update an admin user with the specified credentials.
+## Prerequisites
 
-**Usage:**
+1. **Node.js** installed on your system
+2. **Access** to both development and production databases
+3. **Backup** of your production database (recommended)
 
-```bash
-node scripts/setup-admin.js
-```
+## Setup
 
-**What it does:**
+### 1. Configure Environment Variables
 
-- Creates or updates admin user: `aguntawisdom@gmail.com`
-- Sets password to: `qwerty1234`
-- Sets role to: `admin`
-- Assigns to default store
-
-### 2. `setup-production.js`
-
-Comprehensive production setup script with additional features.
-
-**Usage:**
+Copy the example environment file:
 
 ```bash
-# Basic setup
-node scripts/setup-production.js
-
-# Custom credentials
-node scripts/setup-production.js --email admin@example.com --password mypassword
-
-# Help
-node scripts/setup-production.js --help
+cp migration.env.example migration.env
 ```
 
-**What it does:**
-
-- Creates/updates admin user
-- Creates sample data (if none exists)
-- Verifies setup
-- Displays comprehensive setup information
-
-### 3. `setup-admin.sh`
-
-Shell script wrapper for easy execution.
-
-**Usage:**
+Edit `migration.env` with your actual database connection strings:
 
 ```bash
-# Make executable (first time only)
-chmod +x scripts/setup-admin.sh
+# Development Database (source)
+DEV_MONGODB_URI=mongodb://localhost:27017/greep-market-dev
 
-# Run setup
-./scripts/setup-admin.sh
+# Production Database (destination)
+PROD_MONGODB_URI=mongodb://localhost:27017/greep-market-prod
 ```
 
-**What it does:**
+### 2. Load Environment Variables
 
-- Checks Node.js and npm installation
-- Installs dependencies if needed
-- Builds the project
-- Runs admin setup
-- Displays credentials
+The script will automatically load environment variables from:
 
-## Production Deployment
+- `.env` file (if exists)
+- `migration.env` file (if exists)
+- System environment variables
 
-### Quick Setup
+## Usage
 
-For quick production deployment, use the shell script:
+### Option 1: Using npm script (Recommended)
 
 ```bash
-./scripts/setup-admin.sh
+npm run migrate:products
 ```
 
-### Manual Setup
-
-For more control, run the scripts manually:
+### Option 2: Direct execution
 
 ```bash
-# Install dependencies
-npm install
-
-# Build project
-npm run build
-
-# Setup admin user
-node scripts/setup-admin.js
+node scripts/migrate-products.js
 ```
 
-## Default Admin Credentials
-
-After running any setup script, you can log in with:
-
-- **Email:** `aguntawisdom@gmail.com`
-- **Password:** `qwerty1234`
-- **Role:** `admin`
-
-## Security Notes
-
-⚠️ **IMPORTANT:**
-
-1. Change the admin password after first login
-2. Ensure MongoDB connection is secure
-3. Use HTTPS in production
-4. Set up proper environment variables
-5. Configure proper CORS settings
-
-## Environment Variables
-
-Make sure these environment variables are set:
+### Option 3: With custom environment file
 
 ```bash
-MONGODB_URI=mongodb://your-mongodb-connection-string
-JWT_SECRET=your-jwt-secret-key
-NODE_ENV=production
+node -r dotenv/config scripts/migrate-products.js dotenv_config_path=migration.env
 ```
+
+## What Gets Migrated
+
+The script migrates all product data including:
+
+- ✅ Basic Information (name, description, price, cost_price)
+- ✅ Inventory Data (stock_quantity, min/max stock levels)
+- ✅ Product Details (SKU, barcode, category, unit, weight)
+- ✅ Images and Media
+- ✅ Supplier Information
+- ✅ Tax and Discount Settings
+- ✅ Product Status (active, featured)
+- ✅ Creation and Update Timestamps
+- ✅ Store Association
+
+## Migration Process
+
+1. **Connect** to both development and production databases
+2. **Fetch** all products from development database
+3. **Check** for existing products in production (by SKU)
+4. **Migrate** new products one by one
+5. **Validate** migration results
+6. **Report** detailed statistics
+
+## Example Output
+
+```
+🚀 PRODUCT MIGRATION SCRIPT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔌 Connecting to databases...
+✅ Connected to development database
+✅ Connected to production database
+📦 Fetching products from development database...
+📊 Found 150 products to migrate
+
+🚀 Starting product migration...
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[1/150] Migrating "Apple iPhone 14"... ✅ Migrated: "Apple iPhone 14" (SKU: IPH14-001)
+[2/150] Migrating "Samsung Galaxy S23"... ✅ Migrated: "Samsung Galaxy S23" (SKU: SGS23-001)
+[3/150] Migrating "MacBook Pro M2"... ⏭️  Skipping product "MacBook Pro M2" - SKU MBPM2-001 already exists
+...
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 Validating migration...
+📊 Development products: 150
+📊 Production products: 145
+✅ Migration validation successful!
+
+📋 MIGRATION SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📦 Total products: 150
+✅ Successfully migrated: 145
+⏭️  Skipped (already exist): 5
+❌ Errors: 0
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎉 Migration completed successfully!
+```
+
+## Safety Features
+
+- **Duplicate Prevention**: Products with existing SKUs are automatically skipped
+- **Error Isolation**: If one product fails, others continue to migrate
+- **Transaction Safety**: Each product is migrated individually
+- **Validation**: Post-migration validation ensures data integrity
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **MongoDB Connection Error**
-   - Check if MongoDB is running
-   - Verify MONGODB_URI environment variable
-   - Ensure network connectivity
+1. **Connection Failed**
 
-2. **Build Errors**
-   - Run `npm install` to install dependencies
-   - Check Node.js version compatibility
-   - Clear node_modules and reinstall if needed
+   ```
+   ❌ Database connection failed: Authentication failed
+   ```
 
-3. **Permission Errors**
-   - Make sure scripts are executable: `chmod +x scripts/*.sh`
-   - Check file permissions
+   **Solution**: Check your database credentials and connection strings
 
-### Logs
+2. **Permission Denied**
 
-Check the application logs for detailed error information:
+   ```
+   ❌ Failed to migrate product: E11000 duplicate key error
+   ```
 
-- Application logs: `logs/combined-*.log`
-- Error logs: `logs/error-*.log`
+   **Solution**: This is expected behavior - the script will skip duplicates
+
+3. **Schema Mismatch**
+   ```
+   ❌ Failed to migrate product: ValidationError
+   ```
+   **Solution**: Ensure both databases have compatible schemas
+
+### Environment Variables
+
+Make sure these environment variables are set:
+
+- `DEV_MONGODB_URI`: Development database connection string
+- `PROD_MONGODB_URI`: Production database connection string
+
+### Database Requirements
+
+- Both databases must be MongoDB
+- Both databases must have the same Product schema
+- Production database must be writable
+- Development database must be readable
+
+## Advanced Usage
+
+### Custom Migration
+
+You can modify the script to:
+
+- Filter products by category, date, or other criteria
+- Transform data during migration
+- Migrate to different database types
+- Add custom validation rules
+
+### Batch Processing
+
+For large datasets, the script includes:
+
+- Small delays between migrations (100ms)
+- Progress tracking
+- Memory-efficient processing
+- Error recovery
 
 ## Support
 
 If you encounter issues:
 
-1. Check the logs for error details
-2. Verify environment variables
-3. Ensure all dependencies are installed
-4. Check MongoDB connectivity
+1. Check the logs for specific error messages
+2. Verify your database connections
+3. Ensure both databases are accessible
+4. Check that your schemas are compatible
+
+For additional help, check the script source code in `scripts/migrate-products.js`.

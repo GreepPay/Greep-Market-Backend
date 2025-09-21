@@ -129,6 +129,84 @@ router.get('/my-activity', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 /**
+ * @route   GET /api/v1/audit/logs/export
+ * @desc    Export audit logs to CSV
+ * @access  Private (Admin/Manager only)
+ */
+router.get('/logs/export', asyncHandler(async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  
+  // Allow cashiers to export audit logs for their store
+  if (!['admin', 'manager', 'cashier'].includes(user.role)) {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Admin, Manager, or Cashier role required.',
+    });
+  }
+
+  const {
+    page = 1,
+    limit = 1000, // Larger limit for export
+    user_id,
+    resource_type,
+    action,
+    start_date,
+    end_date,
+  } = req.query;
+
+  const options = {
+    page: parseInt(page as string) || 1,
+    limit: Math.min(parseInt(limit as string) || 1000, 5000), // Max 5000 for export
+    user_id: user_id as string,
+    resource_type: resource_type as string,
+    action: action as string,
+    store_id: user.store_id,
+    start_date: start_date ? new Date(start_date as string) : undefined,
+    end_date: end_date ? new Date(end_date as string) : undefined,
+  };
+
+  const result = await AuditService.getAuditLogs(options);
+
+  // Generate CSV content
+  const csvHeaders = [
+    'Timestamp',
+    'User Email',
+    'User Role',
+    'Action',
+    'Resource Type',
+    'Resource Name',
+    'Resource ID',
+    'IP Address',
+    'User Agent',
+    'Changes'
+  ];
+
+  const csvRows = result.logs.map(log => [
+    new Date(log.created_at).toISOString(),
+    log.user_email,
+    log.user_role,
+    log.action,
+    log.resource_type,
+    log.resource_name,
+    log.resource_id,
+    log.metadata?.ip_address || '',
+    log.metadata?.user_agent || '',
+    log.changes ? JSON.stringify(log.changes) : ''
+  ]);
+
+  const csvContent = [
+    csvHeaders.join(','),
+    ...csvRows.map(row => row.map(field => `"${field}"`).join(','))
+  ].join('\n');
+
+  // Set headers for CSV download
+  const filename = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`;
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(csvContent);
+}));
+
+/**
  * @route   GET /api/v1/audit/stats
  * @desc    Get audit statistics
  * @access  Private (Admin only)
@@ -136,11 +214,11 @@ router.get('/my-activity', asyncHandler(async (req: Request, res: Response) => {
 router.get('/stats', asyncHandler(async (req: Request, res: Response) => {
   const user = (req as any).user;
 
-  // Only admin can view audit statistics
-  if (user.role !== 'admin') {
+  // Allow admin, manager, and cashier to view audit statistics
+  if (!['admin', 'manager', 'cashier'].includes(user.role)) {
     return res.status(403).json({
       success: false,
-      message: 'Access denied. Admin role required.',
+      message: 'Access denied. Admin, Manager, or Cashier role required.',
     });
   }
 

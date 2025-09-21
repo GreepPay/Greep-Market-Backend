@@ -141,9 +141,9 @@ router.delete('/:id', authorize('admin', 'owner'), asyncHandler(async (req, res)
 /**
  * @route   PUT /api/v1/stores/:id/settings
  * @desc    Update store settings
- * @access  Private (admin/owner/manager only)
+ * @access  Private (admin/owner/manager/cashier)
  */
-router.put('/:id/settings', authorize('admin', 'owner', 'manager'), asyncHandler(async (req, res) => {
+router.put('/:id/settings', authorize('admin', 'owner', 'manager', 'cashier'), asyncHandler(async (req, res) => {
   const { id } = req.params;
   const settings = req.body;
 

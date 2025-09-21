@@ -74,8 +74,8 @@ router.get('/', getUsersValidation, validateRequest, async (req: Request, res: R
 
     const result = await UserService.getUsers(page, limit, search, role, store_id);
 
-    res.json({
-      success: true,
+  res.json({
+    success: true,
       data: result,
     });
   } catch (error) {
@@ -115,8 +115,8 @@ router.get('/:id', userParamValidation, validateRequest, async (req: Request, re
       });
     }
 
-    res.json({
-      success: true,
+  res.json({
+    success: true,
       data: userData,
     });
   } catch (error) {
@@ -285,8 +285,8 @@ router.put('/:id/password', updatePasswordValidation, validateRequest, async (re
 
     await UserService.updateUserPassword(id, password);
 
-    res.json({
-      success: true,
+  res.json({
+    success: true,
       message: 'Password updated successfully',
     });
   } catch (error) {
@@ -403,8 +403,8 @@ router.patch('/:id/toggle-status', userParamValidation, validateRequest, async (
 
     const updatedUser = await UserService.toggleUserStatus(id);
 
-    res.json({
-      success: true,
+  res.json({
+    success: true,
       message: `User ${updatedUser.is_active ? 'activated' : 'deactivated'} successfully`,
       data: updatedUser,
     });

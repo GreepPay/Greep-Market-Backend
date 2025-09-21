@@ -235,9 +235,7 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
     // Get the product data before deletion for audit logging
     const product = await ProductService.getProductById(id);
     
-    await ProductService.deleteProduct(id);
-
-    // Log the deletion action
+    // Log the deletion action before actually deleting
     if (product) {
       await AuditService.logDelete(
         req,
@@ -247,6 +245,8 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
         product
       );
     }
+    
+    await ProductService.deleteProduct(id);
 
     res.status(204).send();
   } catch (error) {
