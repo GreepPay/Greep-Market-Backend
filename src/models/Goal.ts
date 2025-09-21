@@ -74,3 +74,7 @@ goalSchema.pre('save', function(next) {
 });
 
 export const Goal = mongoose.model<IGoal>('Goal', goalSchema);
+
+
+
+

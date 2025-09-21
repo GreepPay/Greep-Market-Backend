@@ -1,5 +1,6 @@
 import { Transaction, ITransaction } from '../models/Transaction';
 import { Product } from '../models/Product';
+import { logger } from '../utils/logger';
 
 export interface CreateTransactionData {
   store_id: string;
@@ -106,7 +107,7 @@ export class TransactionService {
 
       return this.formatTransactionResponse(transaction);
     } catch (error) {
-      console.error('Error creating transaction:', error);
+      logger.error('Error creating transaction:', error);
       throw error;
     }
   }
@@ -158,7 +159,7 @@ export class TransactionService {
         pages: Math.ceil(total / limit),
       };
     } catch (error) {
-      console.error('Error getting transactions:', error);
+      logger.error('Error getting transactions:', error);
       throw error;
     }
   }
@@ -175,7 +176,7 @@ export class TransactionService {
 
       return this.formatTransactionResponse(transaction);
     } catch (error) {
-      console.error('Error getting transaction by ID:', error);
+      logger.error('Error getting transaction by ID:', error);
       throw error;
     }
   }
@@ -207,7 +208,7 @@ export class TransactionService {
 
       return this.formatTransactionResponse(transaction);
     } catch (error) {
-      console.error('Error updating transaction status:', error);
+      logger.error('Error updating transaction status:', error);
       throw error;
     }
   }
@@ -239,7 +240,7 @@ export class TransactionService {
 
       return this.formatTransactionResponse(transaction);
     } catch (error) {
-      console.error('Error cancelling transaction:', error);
+      logger.error('Error cancelling transaction:', error);
       throw error;
     }
   }
@@ -298,7 +299,7 @@ export class TransactionService {
         transactionsByPaymentMethod: paymentMethodStats
       };
     } catch (error) {
-      console.error('Error getting transaction stats:', error);
+      logger.error('Error getting transaction stats:', error);
       throw error;
     }
   }

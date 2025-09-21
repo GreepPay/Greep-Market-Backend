@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
+import { StoreService } from '../services/storeService';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -13,12 +15,52 @@ router.use(authenticate);
  * @access  Private
  */
 router.get('/', asyncHandler(async (req, res) => {
-  // TODO: Implement get all stores
-  res.json({
-    success: true,
-    message: 'Stores endpoint - to be implemented',
-    data: [],
-  });
+  logger.info('Getting all stores');
+  
+  try {
+    const stores = await StoreService.getAllStores();
+    
+    res.json({
+      success: true,
+      message: 'Stores retrieved successfully',
+      data: stores,
+    });
+  } catch (error) {
+    logger.error('Error getting all stores:', error);
+    throw error;
+  }
+}));
+
+/**
+ * @route   GET /api/v1/stores/settings
+ * @desc    Get store settings
+ * @access  Private
+ */
+router.get('/settings', asyncHandler(async (req, res) => {
+  const { store_id } = req.query;
+  
+  logger.info(`Getting store settings for store ID: ${store_id}`);
+  
+  try {
+    if (!store_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'store_id query parameter is required',
+      });
+    }
+
+    // Get the store from database
+    const store = await StoreService.getStoreById(store_id as string);
+    
+    res.json({
+      success: true,
+      message: 'Store settings retrieved successfully',
+      data: store,
+    });
+  } catch (error) {
+    logger.error(`Error getting store settings for ${store_id}:`, error);
+    throw error;
+  }
 }));
 
 /**
@@ -27,12 +69,22 @@ router.get('/', asyncHandler(async (req, res) => {
  * @access  Private
  */
 router.get('/:id', asyncHandler(async (req, res) => {
-  // TODO: Implement get store by ID
-  res.json({
-    success: true,
-    message: 'Get store by ID endpoint - to be implemented',
-    data: null,
-  });
+  const { id } = req.params;
+  
+  logger.info(`Getting store by ID: ${id}`);
+  
+  try {
+    const store = await StoreService.getStoreById(id);
+    
+    res.json({
+      success: true,
+      message: 'Store retrieved successfully',
+      data: store,
+    });
+  } catch (error) {
+    logger.error(`Error getting store by ID ${id}:`, error);
+    throw error;
+  }
 }));
 
 /**
@@ -41,12 +93,22 @@ router.get('/:id', asyncHandler(async (req, res) => {
  * @access  Private (admin/owner only)
  */
 router.post('/', authorize('admin', 'owner'), asyncHandler(async (req, res) => {
-  // TODO: Implement create store
-  res.json({
-    success: true,
-    message: 'Create store endpoint - to be implemented',
-    data: null,
-  });
+  const storeData = req.body;
+  
+  logger.info(`Creating new store: ${storeData.name}`);
+  
+  try {
+    const store = await StoreService.createStore(storeData);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Store created successfully',
+      data: store,
+    });
+  } catch (error) {
+    logger.error('Error creating store:', error);
+    throw error;
+  }
 }));
 
 /**
@@ -77,33 +139,6 @@ router.delete('/:id', authorize('admin', 'owner'), asyncHandler(async (req, res)
 }));
 
 /**
- * @route   GET /api/v1/stores/settings
- * @desc    Get store settings
- * @access  Private
- */
-router.get('/settings', asyncHandler(async (req, res) => {
-  const { store_id } = req.query;
-  
-  // For now, return mock data based on store_id
-  const mockSettings = {
-    name: 'Greep Market',
-    address: '123 Market Street, Istanbul, Turkey',
-    phone: '+90 555 123 4567',
-    email: 'info@greepmarket.com',
-    currency: 'TRY',
-    timezone: 'Europe/Istanbul',
-    tax_rate: 0,
-    low_stock_threshold: 10
-  };
-
-  res.json({
-    success: true,
-    message: 'Store settings retrieved successfully',
-    data: mockSettings,
-  });
-}));
-
-/**
  * @route   PUT /api/v1/stores/:id/settings
  * @desc    Update store settings
  * @access  Private (admin/owner/manager only)
@@ -112,24 +147,21 @@ router.put('/:id/settings', authorize('admin', 'owner', 'manager'), asyncHandler
   const { id } = req.params;
   const settings = req.body;
 
-  // For now, just return the updated settings
-  // In a real implementation, you would save this to the database
-  const updatedSettings = {
-    name: settings.name || 'Greep Market',
-    address: settings.address || '123 Market Street, Istanbul, Turkey',
-    phone: settings.phone || '+90 555 123 4567',
-    email: settings.email || 'info@greepmarket.com',
-    currency: settings.currency || 'TRY',
-    timezone: settings.timezone || 'Europe/Istanbul',
-    tax_rate: settings.tax_rate || 0,
-    low_stock_threshold: settings.low_stock_threshold || 10
-  };
+  logger.info(`Updating store settings for store ID: ${id}`);
 
-  res.json({
-    success: true,
-    message: 'Store settings updated successfully',
-    data: updatedSettings,
-  });
+  try {
+    // Update the store with the new settings
+    const updatedStore = await StoreService.updateStore(id, settings);
+
+    res.json({
+      success: true,
+      message: 'Store settings updated successfully',
+      data: updatedStore,
+    });
+  } catch (error) {
+    logger.error(`Error updating store settings for ${id}:`, error);
+    throw error;
+  }
 }));
 
 export default router;

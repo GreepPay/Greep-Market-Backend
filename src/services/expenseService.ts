@@ -1,4 +1,5 @@
 import { Expense, IExpense } from '../models/Expense';
+import { logger } from '../utils/logger';
 
 export interface CreateExpenseData {
   store_id: string;
@@ -99,7 +100,7 @@ export class ExpenseService {
       await expense.save();
       return this.formatExpenseResponse(expense);
     } catch (error) {
-      console.error('Error creating expense:', error);
+      logger.error('Error creating expense:', error);
       throw error;
     }
   }
@@ -168,7 +169,7 @@ export class ExpenseService {
         pages: Math.ceil(total / limit),
       };
     } catch (error) {
-      console.error('Error getting expenses:', error);
+      logger.error('Error getting expenses:', error);
       throw error;
     }
   }
@@ -185,7 +186,7 @@ export class ExpenseService {
 
       return this.formatExpenseResponse(expense);
     } catch (error) {
-      console.error('Error getting expense by ID:', error);
+      logger.error('Error getting expense by ID:', error);
       throw error;
     }
   }
@@ -210,7 +211,7 @@ export class ExpenseService {
 
       return this.formatExpenseResponse(expense);
     } catch (error) {
-      console.error('Error updating expense:', error);
+      logger.error('Error updating expense:', error);
       throw error;
     }
   }
@@ -225,7 +226,7 @@ export class ExpenseService {
         throw new Error('Expense not found');
       }
     } catch (error) {
-      console.error('Error deleting expense:', error);
+      logger.error('Error deleting expense:', error);
       throw error;
     }
   }
@@ -320,7 +321,7 @@ export class ExpenseService {
         topExpenseItems: topItems
       };
     } catch (error) {
-      console.error('Error getting expense stats:', error);
+      logger.error('Error getting expense stats:', error);
       throw error;
     }
   }
@@ -345,7 +346,7 @@ export class ExpenseService {
       const expenses = await Expense.find(filter).sort({ date: -1 });
       return expenses.map(e => this.formatExpenseResponse(e));
     } catch (error) {
-      console.error('Error getting expenses by date range:', error);
+      logger.error('Error getting expenses by date range:', error);
       throw error;
     }
   }
@@ -419,7 +420,7 @@ export class ExpenseService {
         }, [])
       }));
     } catch (error) {
-      console.error('Error getting monthly expense summary:', error);
+      logger.error('Error getting monthly expense summary:', error);
       throw error;
     }
   }

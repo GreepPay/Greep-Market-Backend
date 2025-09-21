@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { TransactionService } from '../services/transactionService';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -34,7 +35,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    console.error('Error getting transactions:', error);
+    logger.error('Error getting transactions:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get transactions',
@@ -86,7 +87,7 @@ router.post('/', asyncHandler(async (req, res) => {
       data: transaction
     });
   } catch (error) {
-    console.error('Error creating transaction:', error);
+    logger.error('Error creating transaction:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create transaction',
@@ -118,7 +119,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
       data: transaction
     });
   } catch (error) {
-    console.error('Error getting transaction:', error);
+    logger.error('Error getting transaction:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get transaction',
@@ -149,7 +150,7 @@ router.post('/:id/complete', asyncHandler(async (req, res) => {
       data: transaction
     });
   } catch (error) {
-    console.error('Error completing transaction:', error);
+    logger.error('Error completing transaction:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to complete transaction',
@@ -175,7 +176,7 @@ router.post('/:id/cancel', asyncHandler(async (req, res) => {
       data: transaction
     });
   } catch (error) {
-    console.error('Error cancelling transaction:', error);
+    logger.error('Error cancelling transaction:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to cancel transaction',

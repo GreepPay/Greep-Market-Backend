@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { User, IUser } from '../models/User';
 import { config } from '../config/app';
+import { logger } from '../utils/logger';
 
 export interface CreateUserData {
   email: string;
@@ -60,7 +61,7 @@ export class UserService {
 
       return this.formatUserResponse(user);
     } catch (error) {
-      console.error('Error creating user:', error);
+      logger.error('Error creating user:', error);
       throw error;
     }
   }
@@ -120,7 +121,7 @@ export class UserService {
         pages: Math.ceil(total / limit),
       };
     } catch (error) {
-      console.error('Error getting users:', error);
+      logger.error('Error getting users:', error);
       throw error;
     }
   }
@@ -137,7 +138,7 @@ export class UserService {
 
       return this.formatUserResponse(user);
     } catch (error) {
-      console.error('Error getting user by ID:', error);
+      logger.error('Error getting user by ID:', error);
       throw error;
     }
   }
@@ -166,7 +167,7 @@ export class UserService {
 
       return this.formatUserResponse(user);
     } catch (error) {
-      console.error('Error updating user:', error);
+      logger.error('Error updating user:', error);
       throw error;
     }
   }
@@ -185,7 +186,7 @@ export class UserService {
       user.password_hash = passwordHash;
       await user.save();
     } catch (error) {
-      console.error('Error updating user password:', error);
+      logger.error('Error updating user password:', error);
       throw error;
     }
   }
@@ -202,7 +203,7 @@ export class UserService {
 
       await User.findByIdAndDelete(userId);
     } catch (error) {
-      console.error('Error deleting user:', error);
+      logger.error('Error deleting user:', error);
       throw error;
     }
   }
@@ -222,7 +223,7 @@ export class UserService {
 
       return this.formatUserResponse(user);
     } catch (error) {
-      console.error('Error toggling user status:', error);
+      logger.error('Error toggling user status:', error);
       throw error;
     }
   }
@@ -235,7 +236,7 @@ export class UserService {
       const users = await User.find({ role, is_active: true }).select('-password_hash');
       return users.map(user => this.formatUserResponse(user));
     } catch (error) {
-      console.error('Error getting users by role:', error);
+      logger.error('Error getting users by role:', error);
       throw error;
     }
   }
@@ -248,7 +249,7 @@ export class UserService {
       const users = await User.find({ store_id: storeId, is_active: true }).select('-password_hash');
       return users.map(user => this.formatUserResponse(user));
     } catch (error) {
-      console.error('Error getting users by store:', error);
+      logger.error('Error getting users by store:', error);
       throw error;
     }
   }

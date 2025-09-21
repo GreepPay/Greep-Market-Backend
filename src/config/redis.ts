@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+import { logger } from '../utils/logger';
 
 // Redis configuration
 const redisConfig = {
@@ -23,15 +24,15 @@ export const redis = new Redis(redisConfig);
 
 // Handle Redis connection errors gracefully
 redis.on('error', (error) => {
-  console.warn('⚠️ Redis connection error (continuing without cache):', error.message);
+  logger.warn('⚠️ Redis connection error (continuing without cache):', error.message);
 });
 
 redis.on('connect', () => {
-  console.log('✅ Redis connected');
+  logger.info('✅ Redis connected');
 });
 
 redis.on('ready', () => {
-  console.log('✅ Redis ready');
+  logger.info('✅ Redis ready');
 });
 
 // Cache configuration
@@ -69,10 +70,10 @@ export const cacheKeys = {
 export const testRedisConnection = async (): Promise<boolean> => {
   try {
     await redis.ping();
-    console.log('✅ Redis connection successful');
+    logger.info('✅ Redis connection successful');
     return true;
   } catch (error) {
-    console.error('❌ Redis connection failed:', error);
+    logger.error('❌ Redis connection failed:', error);
     return false;
   }
 };
@@ -87,7 +88,7 @@ export const cache = {
       const value = await redis.get(key);
       return value ? JSON.parse(value) : null;
     } catch (error) {
-      console.warn('Cache get error (Redis unavailable):', (error as Error).message);
+      logger.warn('Cache get error (Redis unavailable):', (error as Error).message);
       return null;
     }
   },
@@ -105,7 +106,7 @@ export const cache = {
       }
       return true;
     } catch (error) {
-      console.warn('Cache set error (Redis unavailable):', (error as Error).message);
+      logger.warn('Cache set error (Redis unavailable):', (error as Error).message);
       return false;
     }
   },
@@ -118,7 +119,7 @@ export const cache = {
       await redis.del(key);
       return true;
     } catch (error) {
-      console.warn('Cache delete error (Redis unavailable):', (error as Error).message);
+      logger.warn('Cache delete error (Redis unavailable):', (error as Error).message);
       return false;
     }
   },
@@ -131,7 +132,7 @@ export const cache = {
       const result = await redis.exists(key);
       return result === 1;
     } catch (error) {
-      console.warn('Cache exists error (Redis unavailable):', (error as Error).message);
+      logger.warn('Cache exists error (Redis unavailable):', (error as Error).message);
       return false;
     }
   },
@@ -144,7 +145,7 @@ export const cache = {
       await redis.flushall();
       return true;
     } catch (error) {
-      console.warn('Cache flush error (Redis unavailable):', (error as Error).message);
+      logger.warn('Cache flush error (Redis unavailable):', (error as Error).message);
       return false;
     }
   },
@@ -154,8 +155,8 @@ export const cache = {
 export const closeRedisConnection = async (): Promise<void> => {
   try {
     await redis.quit();
-    console.log('✅ Redis connection closed');
+    logger.info('✅ Redis connection closed');
   } catch (error) {
-    console.error('❌ Error closing Redis connection:', error);
+    logger.error('❌ Error closing Redis connection:', error);
   }
 };

@@ -1,6 +1,7 @@
 import { Product } from '../models/Product';
 import { Transaction } from '../models/Transaction';
 import { User } from '../models/User';
+import { logger } from '../utils/logger';
 
 export interface DashboardMetrics {
   totalSales: number;
@@ -171,7 +172,7 @@ export class AnalyticsService {
         salesByMonth
       };
     } catch (error) {
-      console.error('Error getting dashboard metrics:', error);
+      logger.error('Error getting dashboard metrics:', error);
       throw error;
     }
   }
@@ -244,7 +245,7 @@ export class AnalyticsService {
         paymentMethodBreakdown
       };
     } catch (error) {
-      console.error('Error getting sales analytics:', error);
+      logger.error('Error getting sales analytics:', error);
       throw error;
     }
   }
@@ -302,7 +303,7 @@ export class AnalyticsService {
         categoryBreakdown
       };
     } catch (error) {
-      console.error('Error getting product analytics:', error);
+      logger.error('Error getting product analytics:', error);
       throw error;
     }
   }
@@ -354,7 +355,7 @@ export class AnalyticsService {
         categoryStock
       };
     } catch (error) {
-      console.error('Error getting inventory analytics:', error);
+      logger.error('Error getting inventory analytics:', error);
       throw error;
     }
   }
@@ -388,7 +389,7 @@ export class AnalyticsService {
 
       return topProducts;
     } catch (error) {
-      console.error('Error getting top products:', error);
+      logger.error('Error getting top products:', error);
       return [];
     }
   }
@@ -422,7 +423,7 @@ export class AnalyticsService {
 
       return salesByMonth;
     } catch (error) {
-      console.error('Error getting sales by month:', error);
+      logger.error('Error getting sales by month:', error);
       return [];
     }
   }
@@ -460,7 +461,7 @@ export class AnalyticsService {
       const growthRate = ((currentTotal - previousTotal) / previousTotal) * 100;
       return Math.round(growthRate * 100) / 100; // Round to 2 decimal places
     } catch (error) {
-      console.error('Error calculating growth rate:', error);
+      logger.error('Error calculating growth rate:', error);
       return 0;
     }
   }
@@ -499,7 +500,7 @@ export class AnalyticsService {
 
       return salesByPeriod;
     } catch (error) {
-      console.error('Error getting sales by period:', error);
+      logger.error('Error getting sales by period:', error);
       return [];
     }
   }

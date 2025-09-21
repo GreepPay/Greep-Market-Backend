@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { logger } from '../utils/logger';
 
 // MongoDB connection configuration
 const connectDB = async (): Promise<void> => {
@@ -18,23 +19,23 @@ const connectDB = async (): Promise<void> => {
 
     await mongoose.connect(mongoURI, options);
     
-    console.log('✅ MongoDB connection successful');
+    logger.info('✅ MongoDB connection successful');
     
     // Handle connection events
     mongoose.connection.on('error', (error) => {
-      console.error('❌ MongoDB connection error:', error);
+      logger.error('❌ MongoDB connection error:', error);
     });
 
     mongoose.connection.on('disconnected', () => {
-      console.warn('⚠️ MongoDB disconnected');
+      logger.warn('⚠️ MongoDB disconnected');
     });
 
     mongoose.connection.on('reconnected', () => {
-      console.log('✅ MongoDB reconnected');
+      logger.info('✅ MongoDB reconnected');
     });
 
   } catch (error) {
-    console.error('❌ MongoDB connection failed:', error);
+    logger.error('❌ MongoDB connection failed:', error);
     throw error;
   }
 };
@@ -43,14 +44,14 @@ const connectDB = async (): Promise<void> => {
 export const testConnection = async (): Promise<boolean> => {
   try {
     if (mongoose.connection.readyState === 1) {
-      console.log('✅ Database connection already established');
+      logger.info('✅ Database connection already established');
       return true;
     }
     
     await connectDB();
     return true;
   } catch (error) {
-    console.error('❌ Database connection failed:', error);
+    logger.error('❌ Database connection failed:', error);
     return false;
   }
 };
@@ -60,10 +61,10 @@ export const closeDatabaseConnections = async (): Promise<void> => {
   try {
     if (mongoose.connection.readyState !== 0) {
       await mongoose.connection.close();
-      console.log('✅ Database connections closed');
+      logger.info('✅ Database connections closed');
     }
   } catch (error) {
-    console.error('❌ Error closing database connections:', error);
+    logger.error('❌ Error closing database connections:', error);
   }
 };
 

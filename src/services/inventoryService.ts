@@ -1,4 +1,5 @@
 import { Product } from '../models/Product';
+import { logger } from '../utils/logger';
 
 export interface InventoryAlert {
   _id: string;
@@ -46,7 +47,7 @@ export class InventoryService {
         alert_type: product.stock_quantity === 0 ? 'out_of_stock' : 'low_stock'
       }));
     } catch (error) {
-      console.error('Error getting low stock items:', error);
+      logger.error('Error getting low stock items:', error);
       throw error;
     }
   }
@@ -73,7 +74,7 @@ export class InventoryService {
         alert_type: 'out_of_stock' as const
       }));
     } catch (error) {
-      console.error('Error getting out of stock items:', error);
+      logger.error('Error getting out of stock items:', error);
       throw error;
     }
   }
@@ -96,7 +97,7 @@ export class InventoryService {
         created_at: new Date()
       }));
     } catch (error) {
-      console.error('Error getting inventory alerts:', error);
+      logger.error('Error getting inventory alerts:', error);
       throw error;
     }
   }
@@ -111,7 +112,7 @@ export class InventoryService {
         updated_at: new Date()
       });
     } catch (error) {
-      console.error('Error updating product stock:', error);
+      logger.error('Error updating product stock:', error);
       throw error;
     }
   }
@@ -159,7 +160,7 @@ export class InventoryService {
         totalInventoryValue
       };
     } catch (error) {
-      console.error('Error getting inventory summary:', error);
+      logger.error('Error getting inventory summary:', error);
       throw error;
     }
   }

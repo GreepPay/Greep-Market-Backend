@@ -3,6 +3,7 @@ import { body, param, query, validationResult } from 'express-validator';
 import { authenticate, authorize } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { ExpenseService } from '../services/expenseService';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -65,7 +66,7 @@ router.get('/', [
       }
     });
   } catch (error) {
-    console.error('Error getting expenses:', error);
+    logger.error('Error getting expenses:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get expenses',
@@ -105,7 +106,7 @@ router.get('/stats', [
       data: stats,
     });
   } catch (error) {
-    console.error('Error getting expense stats:', error);
+    logger.error('Error getting expense stats:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get expense statistics',
@@ -143,7 +144,7 @@ router.get('/monthly/:year', [
       data: monthlySummary,
     });
   } catch (error) {
-    console.error('Error getting monthly expense summary:', error);
+    logger.error('Error getting monthly expense summary:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get monthly expense summary',
@@ -184,7 +185,7 @@ router.get('/:id', [
       data: expense,
     });
   } catch (error) {
-    console.error('Error getting expense by ID:', error);
+    logger.error('Error getting expense by ID:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get expense',
@@ -236,7 +237,7 @@ router.post('/', [
       message: 'Expense created successfully',
     });
   } catch (error) {
-    console.error('Error creating expense:', error);
+    logger.error('Error creating expense:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create expense',
@@ -282,7 +283,7 @@ router.put('/:id', [
       message: 'Expense updated successfully',
     });
   } catch (error) {
-    console.error('Error updating expense:', error);
+    logger.error('Error updating expense:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update expense',
@@ -317,7 +318,7 @@ router.delete('/:id', [
       message: 'Expense deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting expense:', error);
+    logger.error('Error deleting expense:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to delete expense',

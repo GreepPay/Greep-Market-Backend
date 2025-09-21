@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { AnalyticsService } from '../services/analyticsService';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -24,7 +25,7 @@ router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
       data: metrics,
     });
   } catch (error) {
-    console.error('Error getting dashboard metrics:', error);
+    logger.error('Error getting dashboard metrics:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get dashboard metrics',
@@ -51,7 +52,7 @@ router.get('/sales', asyncHandler(async (req, res) => {
       data: salesData,
     });
   } catch (error) {
-    console.error('Error getting sales analytics:', error);
+    logger.error('Error getting sales analytics:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get sales analytics',
@@ -78,7 +79,7 @@ router.get('/products', asyncHandler(async (req, res) => {
       data: productData,
     });
   } catch (error) {
-    console.error('Error getting product analytics:', error);
+    logger.error('Error getting product analytics:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get product analytics',

@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { InventoryService } from '../services/inventoryService';
 import { Product } from '../models/Product';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -24,7 +25,7 @@ router.get('/', asyncHandler(async (req, res) => {
       data: summary
     });
   } catch (error) {
-    console.error('Error getting inventory summary:', error);
+    logger.error('Error getting inventory summary:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get inventory summary',
@@ -48,7 +49,7 @@ router.get('/low-stock', asyncHandler(async (req: Request, res: Response) => {
       data: lowStockItems,
     });
   } catch (error) {
-    console.error('Error getting low stock items:', error);
+    logger.error('Error getting low stock items:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get low stock items',
@@ -72,7 +73,7 @@ router.get('/out-of-stock', asyncHandler(async (req: Request, res: Response) => 
       data: outOfStockItems,
     });
   } catch (error) {
-    console.error('Error getting out of stock items:', error);
+    logger.error('Error getting out of stock items:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get out of stock items',
@@ -96,7 +97,7 @@ router.get('/alerts', asyncHandler(async (req: Request, res: Response) => {
       data: alerts,
     });
   } catch (error) {
-    console.error('Error getting inventory alerts:', error);
+    logger.error('Error getting inventory alerts:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get inventory alerts',
@@ -165,7 +166,7 @@ router.post('/:productId/adjust', asyncHandler(async (req, res) => {
     await InventoryService.updateProductStock(productId, newStock);
 
     // Log the adjustment
-    console.log(`Inventory adjusted for product ${product.name}: ${adjustment_type} ${quantity}, new stock: ${newStock}, reason: ${reason || 'No reason provided'}`);
+    logger.info(`Inventory adjusted for product ${product.name}: ${adjustment_type} ${quantity}, new stock: ${newStock}, reason: ${reason || 'No reason provided'}`);
 
     res.json({
       success: true,
@@ -182,7 +183,7 @@ router.post('/:productId/adjust', asyncHandler(async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error adjusting inventory:', error);
+    logger.error('Error adjusting inventory:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to adjust inventory',

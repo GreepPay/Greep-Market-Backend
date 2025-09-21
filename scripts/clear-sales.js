@@ -41,3 +41,7 @@ async function clearAllSales() {
 
 // Run the script
 clearAllSales();
+
+
+
+

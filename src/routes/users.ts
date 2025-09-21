@@ -3,6 +3,7 @@ import { UserService } from '../services/userService';
 import { authenticate } from '../middleware/auth';
 import { validateRequest } from '../middleware/validation';
 import { body, param, query } from 'express-validator';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -78,7 +79,7 @@ router.get('/', getUsersValidation, validateRequest, async (req: Request, res: R
       data: result,
     });
   } catch (error) {
-    console.error('Error getting users:', error);
+    logger.error('Error getting users:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get users',
@@ -119,7 +120,7 @@ router.get('/:id', userParamValidation, validateRequest, async (req: Request, re
       data: userData,
     });
   } catch (error) {
-    console.error('Error getting user:', error);
+    logger.error('Error getting user:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get user',
@@ -161,7 +162,7 @@ router.post('/', createUserValidation, validateRequest, async (req: Request, res
       data: userData,
     });
   } catch (error) {
-    console.error('Error creating user:', error);
+    logger.error('Error creating user:', error);
     
     if (error instanceof Error && error.message.includes('already exists')) {
       return res.status(409).json({
@@ -229,7 +230,7 @@ router.put('/:id', updateUserValidation, validateRequest, async (req: Request, r
       data: updatedUser,
     });
   } catch (error) {
-    console.error('Error updating user:', error);
+    logger.error('Error updating user:', error);
     
     if (error instanceof Error && error.message.includes('already exists')) {
       return res.status(409).json({
@@ -289,7 +290,7 @@ router.put('/:id/password', updatePasswordValidation, validateRequest, async (re
       message: 'Password updated successfully',
     });
   } catch (error) {
-    console.error('Error updating password:', error);
+    logger.error('Error updating password:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update password',
@@ -348,7 +349,7 @@ router.delete('/:id', userParamValidation, validateRequest, async (req: Request,
       message: 'User deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting user:', error);
+    logger.error('Error deleting user:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to delete user',
@@ -408,7 +409,7 @@ router.patch('/:id/toggle-status', userParamValidation, validateRequest, async (
       data: updatedUser,
     });
   } catch (error) {
-    console.error('Error toggling user status:', error);
+    logger.error('Error toggling user status:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to toggle user status',
@@ -449,7 +450,7 @@ router.get('/role/:role', async (req: Request, res: Response) => {
       data: users,
     });
   } catch (error) {
-    console.error('Error getting users by role:', error);
+    logger.error('Error getting users by role:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get users by role',

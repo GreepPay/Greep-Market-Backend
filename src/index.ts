@@ -8,7 +8,7 @@ import rateLimit from 'express-rate-limit';
 import { config } from './config/app';
 import { testConnection, closeDatabaseConnections } from './config/database';
 // import { testRedisConnection, closeRedisConnection } from './config/redis';
-import { logger } from './utils/logger';
+import { logger, morganStream } from './utils/logger';
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
 // import { requestMonitoring, performanceMonitoring, errorMonitoring } from './middleware/monitoring';
@@ -61,11 +61,7 @@ class App {
     this.app.use(compression());
 
     // Request logging
-    this.app.use(morgan('combined', {
-      stream: {
-        write: (message: string) => logger.info(message.trim()),
-      },
-    }));
+    this.app.use(morgan('combined', { stream: morganStream }));
 
     // Monitoring middleware
     // this.app.use(requestMonitoring);

@@ -60,3 +60,7 @@ productPriceHistorySchema.index({ changed_by: 1 });
 
 // Create the model
 export const ProductPriceHistory = mongoose.model<IProductPriceHistory>('ProductPriceHistory', productPriceHistorySchema);
+
+
+
+
