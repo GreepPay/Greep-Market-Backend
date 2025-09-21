@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
 import { authService } from '../services/authService';
+import { AuditService } from '../services/auditService';
 import { authenticate } from '../middleware/auth';
 import { asyncHandler, validationError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
@@ -115,6 +116,16 @@ router.post('/login', loginValidation, asyncHandler(async (req, res) => {
   const result = await authService.login({ email, password });
 
   logger.info(`User logged in: ${email}`);
+
+  // Log the login action
+  await AuditService.logAuth(
+    req,
+    'LOGIN',
+    result.user.id,
+    result.user.email,
+    result.user.role,
+    result.user.store_id
+  );
 
   res.json({
     success: true,

@@ -178,6 +178,149 @@ export class AnalyticsService {
   }
 
   /**
+   * Get sales analytics for a specific date range
+   */
+  static async getSalesAnalyticsByDateRange(
+    storeId: string, 
+    startDate: Date, 
+    endDate: Date
+  ): Promise<SalesAnalytics> {
+    try {
+      const query: any = {
+        store_id: storeId,
+        status: 'completed',
+        created_at: {
+          $gte: startDate,
+          $lte: endDate
+        }
+      };
+
+      const [transactions, totalRevenue, totalTransactions] = await Promise.all([
+        Transaction.find(query).sort({ created_at: -1 }).lean(),
+        Transaction.aggregate([
+          { $match: query },
+          { $group: { _id: null, total: { $sum: '$total_amount' } } }
+        ]),
+        Transaction.countDocuments(query)
+      ]);
+
+      const revenue = totalRevenue[0]?.total || 0;
+      const transactionCount = totalTransactions || 0;
+      const averageTransactionValue = transactionCount > 0 ? revenue / transactionCount : 0;
+
+      // Get sales by period (daily for custom ranges, monthly for longer ranges)
+      const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      let salesByPeriod: Array<{ period: string; revenue: number; transactions: number }> = [];
+
+      if (daysDiff <= 31) {
+        // Daily breakdown
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+          const dayStart = new Date(d);
+          dayStart.setHours(0, 0, 0, 0);
+          const dayEnd = new Date(d);
+          dayEnd.setHours(23, 59, 59, 999);
+
+          const dayQuery = { ...query, created_at: { $gte: dayStart, $lte: dayEnd } };
+          
+          const [dayRevenue, dayTransactions] = await Promise.all([
+            Transaction.aggregate([
+              { $match: dayQuery },
+              { $group: { _id: null, total: { $sum: '$total_amount' } } }
+            ]),
+            Transaction.countDocuments(dayQuery)
+          ]);
+
+          salesByPeriod.push({
+            period: d.toISOString().split('T')[0],
+            revenue: dayRevenue[0]?.total || 0,
+            transactions: dayTransactions || 0
+          });
+        }
+      } else {
+        // Monthly breakdown
+        const current = new Date(startDate);
+        while (current <= endDate) {
+          const monthStart = new Date(current.getFullYear(), current.getMonth(), 1);
+          const monthEnd = new Date(current.getFullYear(), current.getMonth() + 1, 0, 23, 59, 59);
+          
+          const monthQuery = { 
+            ...query, 
+            created_at: { 
+              $gte: monthStart, 
+              $lte: monthEnd 
+            } 
+          };
+          
+          const [monthRevenue, monthTransactions] = await Promise.all([
+            Transaction.aggregate([
+              { $match: monthQuery },
+              { $group: { _id: null, total: { $sum: '$total_amount' } } }
+            ]),
+            Transaction.countDocuments(monthQuery)
+          ]);
+
+          salesByPeriod.push({
+            period: `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`,
+            revenue: monthRevenue[0]?.total || 0,
+            transactions: monthTransactions || 0
+          });
+
+          current.setMonth(current.getMonth() + 1);
+        }
+      }
+
+      // Get top products for the period
+      const topProducts = await Transaction.aggregate([
+        { $match: query },
+        { $unwind: '$items' },
+        {
+          $group: {
+            _id: '$items.product_id',
+            productName: { $first: '$items.name' },
+            quantitySold: { $sum: '$items.quantity' },
+            revenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
+          }
+        },
+        { $sort: { revenue: -1 } },
+        { $limit: 10 }
+      ]);
+
+      // Get payment method breakdown
+      const paymentBreakdown = await Transaction.aggregate([
+        { $match: query },
+        {
+          $group: {
+            _id: '$payment_method',
+            count: { $sum: 1 },
+            totalAmount: { $sum: '$total_amount' }
+          }
+        }
+      ]);
+
+      return {
+        totalRevenue: revenue,
+        totalTransactions: transactionCount,
+        averageTransactionValue,
+        salesByPeriod,
+        topProducts: topProducts.map(p => ({
+          productId: p._id,
+          productName: p.productName,
+          quantitySold: p.quantitySold,
+          revenue: p.revenue
+        })),
+        paymentMethodBreakdown: paymentBreakdown.map(p => ({
+          method: p._id,
+          count: p.count,
+          amount: p.totalAmount
+        }))
+      };
+    } catch (error) {
+      logger.error('Error getting sales analytics by date range:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get sales analytics
    */
   static async getSalesAnalytics(storeId?: string, period?: string): Promise<SalesAnalytics> {
@@ -251,6 +394,109 @@ export class AnalyticsService {
   }
 
   /**
+   * Get product analytics for a specific date range
+   */
+  static async getProductAnalyticsByDateRange(
+    storeId: string, 
+    startDate: Date, 
+    endDate: Date,
+    limit: number = 10
+  ): Promise<ProductAnalytics> {
+    try {
+      const filter = { store_id: storeId };
+      
+      // Get products created in the date range
+      const productFilter = {
+        ...filter,
+        created_at: {
+          $gte: startDate,
+          $lte: endDate
+        }
+      };
+
+      const [
+        totalProducts,
+        activeProducts,
+        lowStockProducts,
+        outOfStockProducts,
+        topSellingProducts,
+        categoryBreakdown
+      ] = await Promise.all([
+        Product.countDocuments(productFilter),
+        Product.countDocuments({ ...productFilter, is_active: true }),
+        Product.aggregate([
+          { $match: filter },
+          { $addFields: {
+            isLowStock: {
+              $and: [
+                { $lte: ['$stock_quantity', { $ifNull: ['$min_stock_level', 5] }] },
+                { $gt: ['$stock_quantity', 0] }
+              ]
+            }
+          }},
+          { $match: { isLowStock: true } },
+          { $count: 'count' }
+        ]).then(result => result[0]?.count || 0),
+        Product.find({
+          ...filter,
+          stock_quantity: 0
+        }).countDocuments(),
+        Transaction.aggregate([
+          {
+            $match: {
+              store_id: storeId,
+              status: 'completed',
+              created_at: { $gte: startDate, $lte: endDate }
+            }
+          },
+          { $unwind: '$items' },
+          {
+            $group: {
+              _id: '$items.product_id',
+              productName: { $first: '$items.name' },
+              quantitySold: { $sum: '$items.quantity' },
+              revenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
+            }
+          },
+          { $sort: { revenue: -1 } },
+          { $limit: limit }
+        ]),
+        Product.aggregate([
+          { $match: productFilter },
+          {
+            $group: {
+              _id: '$category',
+              count: { $sum: 1 },
+              totalValue: { $sum: { $multiply: ['$price', '$stock_quantity'] } }
+            }
+          }
+        ])
+      ]);
+
+      return {
+        totalProducts,
+        activeProducts,
+        lowStockProducts,
+        outOfStockProducts,
+        topSellingProducts: topSellingProducts.map(p => ({
+          productId: p._id,
+          productName: p.productName,
+          quantitySold: p.quantitySold,
+          revenue: p.revenue
+        })),
+        categoryBreakdown: categoryBreakdown.map(c => ({
+          category: c._id,
+          count: c.count,
+          totalValue: c.totalValue
+        }))
+      };
+    } catch (error) {
+      logger.error('Error getting product analytics by date range:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get product analytics
    */
   static async getProductAnalytics(storeId?: string): Promise<ProductAnalytics> {
@@ -266,15 +512,19 @@ export class AnalyticsService {
       ] = await Promise.all([
         Product.countDocuments(filter),
         Product.countDocuments({ ...filter, is_active: true }),
-        Product.countDocuments({ 
-          ...filter, 
-          $expr: { 
-            $and: [
-              { $lte: ['$stock_quantity', '$min_stock_level'] },
-              { $gt: ['$stock_quantity', 0] }
-            ]
-          }
-        }),
+        Product.aggregate([
+          { $match: filter },
+          { $addFields: {
+            isLowStock: {
+              $and: [
+                { $lte: ['$stock_quantity', { $ifNull: ['$min_stock_level', 5] }] },
+                { $gt: ['$stock_quantity', 0] }
+              ]
+            }
+          }},
+          { $match: { isLowStock: true } },
+          { $count: 'count' }
+        ]).then(result => result[0]?.count || 0),
         Product.countDocuments({ ...filter, stock_quantity: 0 }),
         Product.aggregate([
           { $match: filter },

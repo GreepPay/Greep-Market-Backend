@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { ProductService } from '../services/productService';
+import { AuditService } from '../services/auditService';
 import { uploadMultiple, uploadJsonFile } from '../middleware/upload';
 import { authenticate } from '../middleware/auth';
 import { logger } from '../utils/logger';
@@ -42,6 +43,14 @@ router.post('/', uploadMultiple('images', 5), async (req: Request, res: Response
       images,
     });
     
+    // Log the creation action
+    await AuditService.logCreate(
+      req,
+      'PRODUCT',
+      product._id.toString(),
+      product.name
+    );
+
     res.status(201).json({
     success: true,
       message: 'Product created successfully',
@@ -183,17 +192,30 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
     const updateData = req.body;
 
+    // Get the old product data for audit logging
+    const oldProduct = await ProductService.getProductById(id);
+    
     const product = await ProductService.updateProduct(id, updateData);
   
-  if (!product) {
+    if (!product) {
       return res.status(404).json({
         success: false,
         message: 'Product not found',
       });
-  }
+    }
 
-  res.json({
-    success: true,
+    // Log the update action
+    await AuditService.logUpdate(
+      req,
+      'PRODUCT',
+      product._id.toString(),
+      product.name,
+      oldProduct,
+      product
+    );
+
+    res.json({
+      success: true,
       message: 'Product updated successfully',
       data: product,
     });
@@ -210,7 +232,21 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
   try {
     const { id } = req.params;
     
+    // Get the product data before deletion for audit logging
+    const product = await ProductService.getProductById(id);
+    
     await ProductService.deleteProduct(id);
+
+    // Log the deletion action
+    if (product) {
+      await AuditService.logDelete(
+        req,
+        'PRODUCT',
+        product._id.toString(),
+        product.name,
+        product
+      );
+    }
 
     res.status(204).send();
   } catch (error) {

@@ -41,11 +41,21 @@ router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
  */
 router.get('/sales', asyncHandler(async (req, res) => {
   try {
-    const { period = '30d' } = req.query;
+    const { period = '30d', start_date, end_date } = req.query;
     // Use authenticated user's store_id instead of query parameter
     const storeId = (req as any).user.storeId || 'default-store';
     
-    const salesData = await AnalyticsService.getSalesAnalytics(storeId, period as string);
+    // If custom date range is provided, use it; otherwise use period
+    let salesData;
+    if (start_date && end_date) {
+      salesData = await AnalyticsService.getSalesAnalyticsByDateRange(
+        storeId, 
+        new Date(start_date as string), 
+        new Date(end_date as string)
+      );
+    } else {
+      salesData = await AnalyticsService.getSalesAnalytics(storeId, period as string);
+    }
     
     res.json({
       success: true,
@@ -68,11 +78,22 @@ router.get('/sales', asyncHandler(async (req, res) => {
  */
 router.get('/products', asyncHandler(async (req, res) => {
   try {
-    const { period = '30d', limit = 10 } = req.query;
+    const { period = '30d', limit = 10, start_date, end_date } = req.query;
     // Use authenticated user's store_id instead of query parameter
     const storeId = (req as any).user.storeId || 'default-store';
     
-    const productData = await AnalyticsService.getProductAnalytics(storeId);
+    // If custom date range is provided, use it; otherwise use period
+    let productData;
+    if (start_date && end_date) {
+      productData = await AnalyticsService.getProductAnalyticsByDateRange(
+        storeId, 
+        new Date(start_date as string), 
+        new Date(end_date as string),
+        parseInt(limit as string) || 10
+      );
+    } else {
+      productData = await AnalyticsService.getProductAnalytics(storeId);
+    }
     
     res.json({
       success: true,
