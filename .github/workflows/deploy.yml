@@ -67,4 +67,4 @@ jobs:
             export EARTHLY_BUILD_ARGS=$(echo $EARTHLY_BUILD_ARGS | sed 's/,$//')
 
             # Run earthly with the dynamically created EARTHLY_BUILD_ARGS
-            earthly --no-cache +setup --envs=${{ github.ref_name }} --apptype="nodejs" --service="greep-student-api" && az acr login --name ${{ secrets.AZURE_REGISTRY_NAME }} && earthly --push +build --envs=${{ github.ref_name }} --version=${{ github.run_number }} --apptype="nodejs" --service="greep-student-api" && earthly --no-cache +deploy --envs=${{ github.ref_name }} --version=${{ github.run_number }}  --apptype="nodejs" --service="greep-student-api"
+            earthly --no-cache +setup --envs=${{ github.ref_name }} --apptype="nodejs" --service="greep-shop-api" && az acr login --name ${{ secrets.AZURE_REGISTRY_NAME }} && earthly --push +build --envs=${{ github.ref_name }} --version=${{ github.run_number }} --apptype="nodejs" --service="greep-shop-api" && earthly --no-cache +deploy --envs=${{ github.ref_name }} --version=${{ github.run_number }}  --apptype="nodejs" --service="greep-shop-api"
