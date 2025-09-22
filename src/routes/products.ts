@@ -13,7 +13,7 @@ const router = Router();
  */
 router.post('/', uploadMultiple('images', 5), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { name, description, price, category, sku, barcode, stock_quantity, store_id, created_by } = req.body;
+    const { name, description, price, category, sku, barcode, stock_quantity, store_id, created_by, tags } = req.body;
     const images = req.files as Express.Multer.File[];
 
     // Check for required fields - allow empty strings but not undefined/null
@@ -30,6 +30,18 @@ router.post('/', uploadMultiple('images', 5), async (req: Request, res: Response
       });
     }
 
+    // Parse tags if provided (could be string or array)
+    let parsedTags: string[] = [];
+    if (tags) {
+      if (typeof tags === 'string') {
+        // If tags is a string, split by comma and clean up
+        parsedTags = tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+      } else if (Array.isArray(tags)) {
+        // If tags is already an array, clean up each tag
+        parsedTags = tags.map(tag => tag.trim()).filter(tag => tag.length > 0);
+      }
+    }
+
     const product = await ProductService.createProduct({
       name: name || 'Unnamed Product',
       description: description || '', // Always provide empty string if not provided
@@ -40,6 +52,7 @@ router.post('/', uploadMultiple('images', 5), async (req: Request, res: Response
       stock_quantity: parseInt(stock_quantity) || 0,
       store_id: store_id || 'default-store',
       created_by: created_by || 'default-user',
+      tags: parsedTags,
       images,
     });
     
@@ -187,15 +200,33 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
  * Update product
  * PUT /api/v1/products/:id
  */
-router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
+router.put('/:id', uploadMultiple('images', 5), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
+    const newImages = req.files as Express.Multer.File[];
+    const replaceImages = updateData.replace_images === 'true' || updateData.replace_images === true;
 
     // Get the old product data for audit logging
     const oldProduct = await ProductService.getProductById(id);
     
-    const product = await ProductService.updateProduct(id, updateData);
+    // Handle image replacement if new images are provided
+    if (newImages && newImages.length > 0) {
+      if (replaceImages) {
+        // Delete existing images from Cloudinary and database
+        await ProductService.replaceProductImages(id, newImages);
+      } else {
+        // Add new images to existing ones
+        for (let i = 0; i < newImages.length; i++) {
+          await ProductService.addProductImage(id, newImages[i], i === 0);
+        }
+      }
+    }
+
+    // Remove images from updateData since they're handled separately
+    const { images, replace_images, ...updateDataWithoutImages } = updateData;
+    
+    const product = await ProductService.updateProduct(id, updateDataWithoutImages);
   
     if (!product) {
       return res.status(404).json({
