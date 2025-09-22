@@ -54,7 +54,27 @@ class App {
 
     // CORS configuration
     this.app.use(cors({
-      origin: config.security.corsOrigin,
+      origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        // Allow localhost on any port for development
+        if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+          return callback(null, true);
+        }
+        
+        // Allow configured origins
+        if (config.security.corsOrigin.includes(origin)) {
+          return callback(null, true);
+        }
+        
+        // Allow all origins in development
+        if (config.app.env === 'development') {
+          return callback(null, true);
+        }
+        
+        callback(new Error('Not allowed by CORS'));
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -81,6 +101,15 @@ class App {
     //   legacyHeaders: false,
     // });
     // this.app.use('/api/', limiter);
+
+    // Handle preflight requests
+    this.app.options('*', (req, res) => {
+      res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.sendStatus(200);
+    });
 
     // Body parsing
     this.app.use(express.json({ limit: '10mb' }));

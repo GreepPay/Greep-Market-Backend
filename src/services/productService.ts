@@ -215,6 +215,96 @@ export class ProductService {
   }
 
   /**
+   * Replace all images for a product
+   */
+  static async replaceProductImages(productId: string, newImages: Express.Multer.File[]): Promise<IProduct> {
+    try {
+      const product = await Product.findById(productId);
+      if (!product) {
+        throw validationError('Product not found');
+      }
+
+      // Delete existing images from Cloudinary
+      for (const existingImage of product.images) {
+        try {
+          await CloudinaryService.deleteImage(existingImage.public_id);
+          logger.info(`Deleted old image from Cloudinary: ${existingImage.public_id}`);
+        } catch (deleteError) {
+          logger.warn(`Failed to delete image from Cloudinary: ${existingImage.public_id}`, deleteError);
+          // Continue even if one image fails to delete
+        }
+      }
+
+      // Clear images array in database
+      product.images = [];
+      await product.save();
+
+      // Upload new images
+      const processedImages: { url: string; public_id: string; is_primary: boolean; thumbnail_url?: string }[] = [];
+      
+      for (let i = 0; i < newImages.length; i++) {
+        const image = newImages[i];
+        try {
+          // Upload to Cloudinary
+          const uploadResult = await CloudinaryService.uploadImageFromBuffer(image.buffer, {
+            folder: `student-delivery/products/${product.sku}`,
+            public_id: `${product.sku}_${Date.now()}_${i}`,
+            transformation: [
+              {
+                quality: 'auto:low',
+                fetch_format: 'auto',
+                width: 800,
+                height: 600,
+                crop: 'limit',
+                flags: 'progressive',
+              },
+            ],
+          });
+
+          // Generate thumbnail
+          const thumbnailResult = await CloudinaryService.generateThumbnail(
+            uploadResult.public_id,
+            {
+              folder: `student-delivery/products/${product.sku}/thumbnails`,
+              transformation: [
+                {
+                  quality: 'auto:low',
+                  fetch_format: 'auto',
+                  width: 200,
+                  height: 150,
+                  crop: 'limit',
+                },
+              ],
+            }
+          );
+
+          processedImages.push({
+            url: uploadResult.secure_url,
+            public_id: uploadResult.public_id,
+            is_primary: i === 0, // First image is primary
+            thumbnail_url: thumbnailResult.secure_url,
+          });
+
+          logger.info(`Uploaded new image for product ${product.sku}: ${uploadResult.public_id}`);
+        } catch (uploadError) {
+          logger.error('Failed to upload image:', uploadError);
+          // Continue with other images even if one fails
+        }
+      }
+
+      // Update product with new images
+      product.images = processedImages;
+      await product.save();
+
+      logger.info(`Replaced ${processedImages.length} images for product ${product.sku}`);
+      return product;
+    } catch (error) {
+      logger.error('Replace product images error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get product by ID
    */
   static async getProductById(productId: string): Promise<IProduct | null> {

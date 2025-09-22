@@ -30,9 +30,7 @@
     "import:products:simple": "node scripts/import-products-simple.js",
     "test:env": "node scripts/test-env.js",
     "create:store": "node scripts/create-default-store.js",
-    "verify:store": "node scripts/verify-store.js",
-    "import:products:fixed": "node scripts/import-products-fixed.js",
-    "analyze:images": "node scripts/analyze-product-images.js"
+    "verify:store": "node scripts/verify-store.js"
   },
   "keywords": [
     "market-management",

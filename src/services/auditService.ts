@@ -193,7 +193,13 @@ export class AuditService {
   } {
     const user = (req as any).user;
     if (!user) {
-      throw new Error('User not authenticated');
+      // Return default values for unauthenticated requests
+      return {
+        user_id: 'system',
+        user_email: 'system@system.com',
+        user_role: 'system',
+        store_id: 'default-store',
+      };
     }
 
     return {
