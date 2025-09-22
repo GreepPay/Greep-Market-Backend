@@ -254,10 +254,88 @@ npm run import:products --help
 
 ## 📝 Environment Variables
 
+### For API-Based Scripts (Recommended)
+
+Set these environment variables for the API-based export/import scripts:
+
+```bash
+# Primary API URL
+export API_URL=http://localhost:3001
+
+# Alternative (fallback)
+export SERVER_URL=http://localhost:3001
+
+# Authentication token (if required)
+export API_TOKEN=your-auth-token-here
+```
+
+### For Direct Database Scripts
+
 Make sure these are set in your `.env` file:
 
 ```env
 MONGODB_URI=mongodb://localhost:27017/market-management
 ```
 
-For production, use your production MongoDB connection string.
+### Environment Examples
+
+**Development (local):**
+
+```bash
+export API_URL=http://localhost:3001
+```
+
+**Staging:**
+
+```bash
+export API_URL=https://staging-api.yourdomain.com
+```
+
+**Production:**
+
+```bash
+export API_URL=https://api.yourdomain.com
+export API_TOKEN=your-production-auth-token
+```
+
+### Using Environment Variables
+
+You can set environment variables in several ways:
+
+**Option 1: Export in terminal**
+
+```bash
+export API_URL=http://localhost:3001
+npm run export:products:api
+```
+
+**Option 2: Inline with command**
+
+```bash
+API_URL=http://localhost:3001 npm run export:products:api
+```
+
+**Option 3: Create a .env file**
+
+```bash
+echo "API_URL=http://localhost:3001" > .env
+npm run export:products:api
+```
+
+**Option 4: Use command line override**
+
+```bash
+npm run export:products:api -- --api-url http://localhost:3001
+```
+
+### Testing Environment Variables
+
+Use the test script to verify your environment configuration:
+
+```bash
+# Test with environment variable
+API_URL=http://localhost:3001 npm run test:env
+
+# Test with different URL
+API_URL=https://api.example.com npm run test:env
+```
