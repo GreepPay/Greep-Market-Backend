@@ -35,7 +35,7 @@
     "category": "Spices",
     "sku": "SKU-LOC-330",
     "barcode": "9788926515228",
-    "stock_quantity": 20,
+    "stock_quantity": 19,
     "min_stock_level": 5,
     "unit": "piece",
     "images": [
@@ -52,7 +52,7 @@
     "created_by": "68cb6c620a8bd397d9ac9772",
     "store_id": "default-store",
     "created_at": "2025-09-19T22:36:40.652Z",
-    "updated_at": "2025-09-19T22:36:40.652Z",
+    "updated_at": "2025-09-22T11:35:35.894Z",
     "__v": 0
   },
   {

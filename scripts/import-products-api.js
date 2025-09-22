@@ -16,7 +16,7 @@ const http = require('http');
 const args = process.argv.slice(2);
 const options = {
     filename: null,
-    apiUrl: 'http://localhost:3001',
+    apiUrl: process.env.API_URL || process.env.SERVER_URL || 'http://localhost:3001',
     token: null,
     dryRun: false
 };
@@ -264,10 +264,13 @@ if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     console.log('Arguments:');
     console.log('  <filename>           JSON file containing products to import\n');
     console.log('Options:');
-    console.log('  --api-url <url>      API base URL (default: http://localhost:3001)');
+    console.log('  --api-url <url>      API base URL (default: from API_URL or SERVER_URL env var, fallback: http://localhost:3001)');
     console.log('  --token <token>      Authentication token (if required)');
     console.log('  --dry-run           Show what would be imported without importing');
     console.log('  --help, -h          Show this help message\n');
+    console.log('Environment Variables:');
+    console.log('  API_URL             API base URL (e.g., https://api.example.com)');
+    console.log('  SERVER_URL          Alternative to API_URL');
     console.log('Examples:');
     console.log('  node scripts/import-products-api.js products-export-api.json');
     console.log('  node scripts/import-products-api.js products.json --api-url https://api.example.com');
