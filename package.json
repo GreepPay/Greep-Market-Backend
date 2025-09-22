@@ -21,7 +21,13 @@
     "clear:sales": "node scripts/clear-sales.js",
     "clear:data": "node scripts/clear-data.js",
     "migrate:products": "node scripts/migrate-products.js",
-    "migrate:setup": "node scripts/setup-migration.js"
+    "migrate:setup": "node scripts/setup-migration.js",
+    "export:products": "node scripts/export-products.js",
+    "import:products": "node scripts/import-products.js",
+    "export:products:api": "node scripts/export-products-api.js",
+    "import:products:api": "node scripts/import-products-api.js",
+    "export:products:simple": "node scripts/export-products-simple.js",
+    "import:products:simple": "node scripts/import-products-simple.js"
   },
   "keywords": [
     "market-management",

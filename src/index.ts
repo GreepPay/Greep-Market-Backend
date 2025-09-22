@@ -26,6 +26,7 @@ import expenseRoutes from './routes/expenses';
 import goalRoutes from './routes/goals';
 import auditRoutes from './routes/audit';
 import settingsRoutes from './routes/settings';
+import riderRoutes from './routes/riders';
 // import monitoringRoutes from './routes/monitoring';
 
 class App {
@@ -111,6 +112,11 @@ class App {
           transactions: '/api/v1/transactions',
           customers: '/api/v1/customers',
           analytics: '/api/v1/analytics',
+          expenses: '/api/v1/expenses',
+          goals: '/api/v1/goals',
+          audit: '/api/v1/audit',
+          settings: '/api/v1/settings',
+          riders: '/api/v1/riders',
         },
       });
     });
@@ -128,10 +134,11 @@ class App {
     this.app.use(`${apiPrefix}/transactions`, transactionRoutes);
     this.app.use(`${apiPrefix}/customers`, customerRoutes);
     this.app.use(`${apiPrefix}/analytics`, analyticsRoutes);
-      this.app.use(`${apiPrefix}/expenses`, expenseRoutes);
-      this.app.use(`${apiPrefix}/goals`, goalRoutes);
-      this.app.use(`${apiPrefix}/audit`, auditRoutes);
-      this.app.use(`${apiPrefix}/settings`, settingsRoutes);
+    this.app.use(`${apiPrefix}/expenses`, expenseRoutes);
+    this.app.use(`${apiPrefix}/goals`, goalRoutes);
+    this.app.use(`${apiPrefix}/audit`, auditRoutes);
+    this.app.use(`${apiPrefix}/settings`, settingsRoutes);
+    this.app.use(`${apiPrefix}/riders`, riderRoutes);
     // this.app.use(`${apiPrefix}/monitoring`, monitoringRoutes);
 
     // Root endpoint
