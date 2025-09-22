@@ -47,7 +47,7 @@ async function setupAdmin(email = DEFAULT_ADMIN.email, password = DEFAULT_ADMIN.
             // Update existing user
             const hashedPassword = await bcrypt.hash(password, 12);
 
-            adminUser.password = hashedPassword;
+            adminUser.password_hash = hashedPassword;
             adminUser.role = 'admin';
             adminUser.is_active = true;
             adminUser.first_name = DEFAULT_ADMIN.first_name;
@@ -66,7 +66,7 @@ async function setupAdmin(email = DEFAULT_ADMIN.email, password = DEFAULT_ADMIN.
 
             adminUser = new User({
                 email,
-                password: hashedPassword,
+                password_hash: hashedPassword,
                 role: 'admin',
                 is_active: true,
                 first_name: DEFAULT_ADMIN.first_name,

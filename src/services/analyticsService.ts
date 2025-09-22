@@ -290,11 +290,12 @@ export class AnalyticsService {
         { $match: query },
         {
           $group: {
-            _id: '$payment_method',
+            _id: { $ifNull: ['$payment_method', 'Unknown'] },
             count: { $sum: 1 },
             totalAmount: { $sum: '$total_amount' }
           }
-        }
+        },
+        { $sort: { count: -1 } }
       ]);
 
       return {
@@ -367,7 +368,7 @@ export class AnalyticsService {
       const paymentMethodBreakdown = await Transaction.aggregate([
         { $match: { ...filter, ...dateFilter } },
         { $group: { 
-          _id: '$payment_method', 
+          _id: { $ifNull: ['$payment_method', 'Unknown'] }, 
           count: { $sum: 1 }, 
           amount: { $sum: '$total_amount' } 
         }},
@@ -376,7 +377,8 @@ export class AnalyticsService {
           count: 1, 
           amount: 1, 
           _id: 0 
-        }}
+        }},
+        { $sort: { count: -1 } }
       ]);
 
       return {

@@ -1,0 +1,1401 @@
+[
+  {
+    "_id": "68cddeafbe07ec683d716714",
+    "name": "Mr Chef Ginger Onion Garlic",
+    "description": "",
+    "price": 16,
+    "category": "Spices",
+    "sku": "SKU-MR -546",
+    "barcode": "6946050200883",
+    "stock_quantity": 49,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758322350/student-delivery/products/file_xlpwkr.jpg",
+        "public_id": "student-delivery/products/file_xlpwkr",
+        "is_primary": true,
+        "_id": "68cddeafbe07ec683d716715"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T22:52:31.043Z",
+    "updated_at": "2025-09-20T14:29:55.786Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cddaf8be07ec683d71670f",
+    "name": "Locust Beans (Iru)",
+    "description": "",
+    "price": 63,
+    "category": "Spices",
+    "sku": "SKU-LOC-330",
+    "barcode": "9788926515228",
+    "stock_quantity": 20,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758321400/student-delivery/products/file_guchjm.jpg",
+        "public_id": "student-delivery/products/file_guchjm",
+        "is_primary": true,
+        "_id": "68cddaf8be07ec683d716710"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T22:36:40.652Z",
+    "updated_at": "2025-09-19T22:36:40.652Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdd860be07ec683d71669d",
+    "name": "Mama Speacial Banga Spice",
+    "description": "",
+    "price": 15,
+    "category": "Spices",
+    "sku": "SKU-MAM-698",
+    "barcode": "6156000262086",
+    "stock_quantity": 99,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758320735/student-delivery/products/file_tq6pqw.jpg",
+        "public_id": "student-delivery/products/file_tq6pqw",
+        "is_primary": true,
+        "_id": "68cdd860be07ec683d71669e"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T22:25:36.084Z",
+    "updated_at": "2025-09-20T14:26:34.841Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdd71fbe07ec683d716698",
+    "name": "Ajino-moto",
+    "description": "",
+    "price": 20,
+    "category": "Spices",
+    "sku": "SKU-AJI-487",
+    "barcode": "6156000071817",
+    "stock_quantity": 80,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758320415/student-delivery/products/file_ve3pvw.jpg",
+        "public_id": "student-delivery/products/file_ve3pvw",
+        "is_primary": true,
+        "_id": "68cdd71fbe07ec683d716699"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T22:20:15.595Z",
+    "updated_at": "2025-09-19T22:20:15.596Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdd661be07ec683d716693",
+    "name": "Pineapple Flavour Drink",
+    "description": "",
+    "price": 25,
+    "category": "Drink",
+    "sku": "SKU-PIN-159",
+    "barcode": "8698726787774",
+    "stock_quantity": 20,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758320224/student-delivery/products/file_q8ahgh.jpg",
+        "public_id": "student-delivery/products/file_q8ahgh",
+        "is_primary": true,
+        "_id": "68cdd661be07ec683d716694"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T22:17:05.546Z",
+    "updated_at": "2025-09-19T22:17:05.553Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdd563be07ec683d7165d8",
+    "name": "Strawberry Flavour Drink",
+    "description": "",
+    "price": 25,
+    "category": "Drink",
+    "sku": "SKU-STR-346",
+    "barcode": "8698726787811",
+    "stock_quantity": 15,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758319971/student-delivery/products/file_fnfjif.jpg",
+        "public_id": "student-delivery/products/file_fnfjif",
+        "is_primary": true,
+        "_id": "68cdd563be07ec683d7165d9"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T22:12:51.903Z",
+    "updated_at": "2025-09-19T22:12:51.908Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdd250be07ec683d7165d3",
+    "name": "Blueberry Flavour Drink",
+    "description": "",
+    "price": 25,
+    "category": "Drink",
+    "sku": "SKU-BLU-676",
+    "barcode": "8698726788375",
+    "stock_quantity": 20,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758319183/student-delivery/products/file_qdiwv2.jpg",
+        "public_id": "student-delivery/products/file_qdiwv2",
+        "is_primary": true,
+        "_id": "68cdd250be07ec683d7165d4"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T21:59:44.168Z",
+    "updated_at": "2025-09-19T21:59:44.170Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdd00cbe07ec683d7165ce",
+    "name": "Grounded Egusi (100g)",
+    "description": "",
+    "price": 61,
+    "category": "Seeds",
+    "sku": "SKU-GRO-532",
+    "barcode": "4563480918",
+    "stock_quantity": 17,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758318604/student-delivery/products/file_goefpv.jpg",
+        "public_id": "student-delivery/products/file_goefpv",
+        "is_primary": true,
+        "_id": "68cdd00cbe07ec683d7165cf"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T21:50:04.625Z",
+    "updated_at": "2025-09-19T21:50:04.627Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdcf8cbe07ec683d7165c9",
+    "name": "Grounded Egusi",
+    "description": "",
+    "price": 102,
+    "category": "Seeds",
+    "sku": "SKU-GRO-836",
+    "barcode": "3597856982156",
+    "stock_quantity": 50,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758318475/student-delivery/products/file_gzlwqv.jpg",
+        "public_id": "student-delivery/products/file_gzlwqv",
+        "is_primary": true,
+        "_id": "68cdcf8cbe07ec683d7165ca"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T21:47:56.040Z",
+    "updated_at": "2025-09-19T21:47:56.043Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdcddbbe07ec683d7165c4",
+    "name": "Banga Stick ( Oburunbebe)",
+    "description": "",
+    "price": 50,
+    "category": "Spices",
+    "sku": "SKU-BAN-546",
+    "barcode": "651656226629",
+    "stock_quantity": 10,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758318043/student-delivery/products/file_sb6siu.jpg",
+        "public_id": "student-delivery/products/file_sb6siu",
+        "is_primary": true,
+        "_id": "68cdcddbbe07ec683d7165c5"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T21:40:43.753Z",
+    "updated_at": "2025-09-19T21:40:43.761Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdcca6be07ec683d7165bf",
+    "name": "Banga Palm Fruit Extract (800g)",
+    "description": "",
+    "price": 400,
+    "category": "cooking oils and fats",
+    "sku": "SKU-BAN-262",
+    "barcode": "6156000344812",
+    "stock_quantity": 15,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758317733/student-delivery/products/file_g1isjw.jpg",
+        "public_id": "student-delivery/products/file_g1isjw",
+        "is_primary": true,
+        "_id": "68cdcca6be07ec683d7165c0"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T21:35:34.353Z",
+    "updated_at": "2025-09-19T21:35:34.354Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdcbfabe07ec683d7165ba",
+    "name": "Palm Oil 500ml",
+    "description": "",
+    "price": 130,
+    "category": "cooking oils and fats",
+    "sku": "SKU-PAL-495",
+    "barcode": "7632235429085",
+    "stock_quantity": 15,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758317562/student-delivery/products/file_sbuhdo.jpg",
+        "public_id": "student-delivery/products/file_sbuhdo",
+        "is_primary": true,
+        "_id": "68cdcbfabe07ec683d7165bb"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T21:32:42.923Z",
+    "updated_at": "2025-09-19T21:32:42.930Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdc64ebe07ec683d7165b5",
+    "name": "Palm Oil (1 Litre)",
+    "description": "",
+    "price": 250,
+    "category": "cooking oils and fats",
+    "sku": "SKU-PAL-234",
+    "barcode": "POI-56231",
+    "stock_quantity": 8,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758316110/student-delivery/products/file_nen7qo.jpg",
+        "public_id": "student-delivery/products/file_nen7qo",
+        "is_primary": true,
+        "_id": "68cdc64ebe07ec683d7165b6"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T21:08:30.822Z",
+    "updated_at": "2025-09-21T16:31:28.990Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdb5d2be07ec683d716584",
+    "name": "Mr Chef Pepper Soup Seasoning Powder 10g",
+    "description": "",
+    "price": 16,
+    "category": "Spices",
+    "sku": "SKU-MR -378",
+    "barcode": "028FS-PEP",
+    "stock_quantity": 100,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758311890/student-delivery/products/file_eaucu4.jpg",
+        "public_id": "student-delivery/products/file_eaucu4",
+        "is_primary": true,
+        "_id": "68cdb5d2be07ec683d716585"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T19:58:10.869Z",
+    "updated_at": "2025-09-19T19:58:10.870Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdb4fdbe07ec683d716512",
+    "name": "Mr Chef Jollof Rice Seasoning",
+    "description": "",
+    "price": 16,
+    "category": "Spices",
+    "sku": "SKU-MR -692",
+    "barcode": "0714084873077",
+    "stock_quantity": 100,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758311676/student-delivery/products/file_ebamnb.jpg",
+        "public_id": "student-delivery/products/file_ebamnb",
+        "is_primary": true,
+        "_id": "68cdb4fdbe07ec683d716513"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T19:54:37.055Z",
+    "updated_at": "2025-09-19T19:54:37.056Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdb456be07ec683d71650d",
+    "name": "Mr. Chef Crayfish Seasoning Powder",
+    "description": "",
+    "price": 16,
+    "category": "Spices",
+    "sku": "SKU-MR.-090",
+    "barcode": "578594938389",
+    "stock_quantity": 199,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758311509/student-delivery/products/file_nhfckt.jpg",
+        "public_id": "student-delivery/products/file_nhfckt",
+        "is_primary": true,
+        "_id": "68cdb456be07ec683d71650e"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T19:51:50.860Z",
+    "updated_at": "2025-09-21T14:58:28.183Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdb301be07ec683d716508",
+    "name": "Tiger Curry Powder",
+    "description": "",
+    "price": 150,
+    "category": "Spices",
+    "sku": "SKU-TIG-220",
+    "barcode": "8901806000251",
+    "stock_quantity": 10,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758311167/student-delivery/products/file_hybfyu.jpg",
+        "public_id": "student-delivery/products/file_hybfyu",
+        "is_primary": true,
+        "_id": "68cdb301be07ec683d716509"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T19:46:09.246Z",
+    "updated_at": "2025-09-19T19:46:09.251Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdb221be07ec683d716503",
+    "name": "Mr Chef Jollof Rice Seasoning Powder 100g",
+    "description": "",
+    "price": 150,
+    "category": "Spices",
+    "sku": "SKU-MR -219",
+    "barcode": "0714084860015",
+    "stock_quantity": 20,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758310944/student-delivery/products/file_dyiu7t.jpg",
+        "public_id": "student-delivery/products/file_dyiu7t",
+        "is_primary": true,
+        "_id": "68cdb221be07ec683d716504"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T19:42:25.651Z",
+    "updated_at": "2025-09-19T19:42:25.652Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdb113be07ec683d7164fe",
+    "name": "Spicity Stew & Jollof Rice Powder",
+    "description": "",
+    "price": 20,
+    "category": "Spices",
+    "sku": "SKU-SPI-079",
+    "stock_quantity": 100,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758310674/student-delivery/products/file_kjxjuc.jpg",
+        "public_id": "student-delivery/products/file_kjxjuc",
+        "is_primary": true,
+        "_id": "68cdb113be07ec683d7164ff"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T19:37:55.541Z",
+    "updated_at": "2025-09-19T19:37:55.542Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdb0b1be07ec683d7164fa",
+    "name": "Spicity Seasoning Powder",
+    "description": "",
+    "price": 16,
+    "category": "Spices",
+    "sku": "SKU-SPI-560",
+    "barcode": "6156000101798",
+    "stock_quantity": 100,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758310577/student-delivery/products/file_rr19pc.jpg",
+        "public_id": "student-delivery/products/file_rr19pc",
+        "is_primary": true,
+        "_id": "68cdb0b1be07ec683d7164fb"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T19:36:17.699Z",
+    "updated_at": "2025-09-19T19:36:17.700Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdaf38be07ec683d7164f5",
+    "name": "Gino Tomato Mix Paste",
+    "description": "",
+    "price": 50,
+    "category": "Spices",
+    "sku": "SKU-GIN-310",
+    "barcode": "8410300362708",
+    "stock_quantity": 14,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758310199/student-delivery/products/file_q1ksp5.jpg",
+        "public_id": "student-delivery/products/file_q1ksp5",
+        "is_primary": true,
+        "_id": "68cdaf38be07ec683d7164f6"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T19:30:00.555Z",
+    "updated_at": "2025-09-21T16:31:29.745Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdae86be07ec683d7164f0",
+    "name": "Fung Yue Goat Meat Seasoning",
+    "description": "",
+    "price": 150,
+    "category": "Spices",
+    "sku": "SKU-FUN-624",
+    "barcode": "6971336410358",
+    "stock_quantity": 20,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758310021/student-delivery/products/file_jzwld9.jpg",
+        "public_id": "student-delivery/products/file_jzwld9",
+        "is_primary": true,
+        "_id": "68cdae86be07ec683d7164f1"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T19:27:02.529Z",
+    "updated_at": "2025-09-19T19:27:02.535Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdacbcbe07ec683d7164eb",
+    "name": "Onga Classic Seasoning 10g",
+    "description": "",
+    "price": 16,
+    "category": "Spices",
+    "sku": "SKU-ONG-542",
+    "barcode": "8765466778778",
+    "stock_quantity": 19,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758309564/student-delivery/products/file_qas34c.jpg",
+        "public_id": "student-delivery/products/file_qas34c",
+        "is_primary": true,
+        "_id": "68cdacbcbe07ec683d7164ec"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T19:19:24.979Z",
+    "updated_at": "2025-09-21T14:58:29.606Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdac35be07ec683d7164e6",
+    "name": "Mr Chef - Goat Meat Spice",
+    "description": "",
+    "price": 16,
+    "category": "Spices",
+    "sku": "SKU-MR -192",
+    "barcode": "714084873039",
+    "stock_quantity": 20,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758309429/student-delivery/products/file_zdiwed.jpg",
+        "public_id": "student-delivery/products/file_zdiwed",
+        "is_primary": true,
+        "_id": "68cdac35be07ec683d7164e7"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T19:17:09.950Z",
+    "updated_at": "2025-09-19T19:17:09.954Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdab93be07ec683d716474",
+    "name": "Tiger Curry Powder Sachets 5g",
+    "description": "",
+    "price": 16,
+    "category": "Spices",
+    "sku": "SKU-TIG-658",
+    "barcode": "056HA-TIG",
+    "stock_quantity": 17,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758309266/student-delivery/products/file_qah14h.jpg",
+        "public_id": "student-delivery/products/file_qah14h",
+        "is_primary": true,
+        "_id": "68cdab93be07ec683d716475"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T19:14:27.372Z",
+    "updated_at": "2025-09-19T19:14:27.374Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdaad3be07ec683d71646f",
+    "name": "Benny Powdered chicken stock seasoning",
+    "description": "",
+    "price": 27,
+    "category": "Spices",
+    "sku": "SKU-BEN-925",
+    "barcode": "6009633520002",
+    "stock_quantity": 50,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758309074/student-delivery/products/file_ydtuqp.jpg",
+        "public_id": "student-delivery/products/file_ydtuqp",
+        "is_primary": true,
+        "_id": "68cdaad3be07ec683d716470"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T19:11:15.453Z",
+    "updated_at": "2025-09-19T19:11:15.455Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cdaa2ebe07ec683d71646a",
+    "name": "Spice supreme Grounded Ginger",
+    "description": "",
+    "price": 200,
+    "category": "Spices",
+    "sku": "SKU-SPI-427",
+    "barcode": "076114303603",
+    "stock_quantity": 20,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758308910/student-delivery/products/file_wusloa.jpg",
+        "public_id": "student-delivery/products/file_wusloa",
+        "is_primary": true,
+        "_id": "68cdaa2ebe07ec683d71646b"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T19:08:30.979Z",
+    "updated_at": "2025-09-19T19:08:30.980Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cda937be07ec683d716465",
+    "name": "Spice supreme Fish seasoning",
+    "description": "",
+    "price": 200,
+    "category": "Spices",
+    "sku": "SKU-SPI-836",
+    "barcode": "076114307601",
+    "stock_quantity": 19,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758308663/student-delivery/products/file_w6gldq.jpg",
+        "public_id": "student-delivery/products/file_w6gldq",
+        "is_primary": true,
+        "_id": "68cda937be07ec683d716466"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T19:04:23.679Z",
+    "updated_at": "2025-09-19T19:04:23.682Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cda7f5be07ec683d716460",
+    "name": "Spice supreme Garlic powder",
+    "description": "",
+    "price": 200,
+    "category": "Spices",
+    "sku": "SKU-SPI-537",
+    "barcode": "076114380109",
+    "stock_quantity": 17,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758308341/student-delivery/products/file_fnjjfz.jpg",
+        "public_id": "student-delivery/products/file_fnjjfz",
+        "is_primary": true,
+        "_id": "68cda7f5be07ec683d716461"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T18:59:01.719Z",
+    "updated_at": "2025-09-19T18:59:01.722Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd9205be07ec683d71637d",
+    "name": "Meatpie",
+    "description": "",
+    "price": 100,
+    "category": "Bakery",
+    "sku": "SKU-MEA-871",
+    "barcode": "GMP001",
+    "stock_quantity": 7,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758302724/student-delivery/products/file_rxgqcu.jpg",
+        "public_id": "student-delivery/products/file_rxgqcu",
+        "is_primary": true,
+        "_id": "68cd9205be07ec683d71637e"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T17:25:25.161Z",
+    "updated_at": "2025-09-19T17:25:25.165Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd909fbe07ec683d71634c",
+    "name": "African Hard Chicken",
+    "description": "",
+    "price": 120,
+    "category": "Poultry",
+    "sku": "SKU-AFR-619",
+    "barcode": "2900953025748",
+    "stock_quantity": 27.15,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758302367/student-delivery/products/file_hysjpf.jpg",
+        "public_id": "student-delivery/products/file_hysjpf",
+        "is_primary": true,
+        "_id": "68cd909fbe07ec683d71634d"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T17:19:27.670Z",
+    "updated_at": "2025-09-21T15:12:22.781Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd8febbe07ec683d716347",
+    "name": "Fish Rolls",
+    "description": "",
+    "price": 100,
+    "category": "Bakery",
+    "sku": "SKU-FIS-421",
+    "barcode": "GMP004",
+    "stock_quantity": 10,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758302186/student-delivery/products/file_yuxv7i.jpg",
+        "public_id": "student-delivery/products/file_yuxv7i",
+        "is_primary": true,
+        "_id": "68cd8febbe07ec683d716348"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T17:16:27.202Z",
+    "updated_at": "2025-09-19T17:16:27.206Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd8f55be07ec683d716342",
+    "name": "CHARGER (330 ML)",
+    "description": "",
+    "price": 22,
+    "category": "Beverages",
+    "sku": "SKU-CHA-920",
+    "barcode": "8697458871713",
+    "stock_quantity": 24,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758302036/student-delivery/products/file_tpe1as.jpg",
+        "public_id": "student-delivery/products/file_tpe1as",
+        "is_primary": true,
+        "_id": "68cd8f55be07ec683d716343"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T17:13:57.787Z",
+    "updated_at": "2025-09-19T17:13:57.792Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd8e76be07ec683d71633d",
+    "name": "COW LEG",
+    "description": "",
+    "price": 130,
+    "category": "Red Meat",
+    "sku": "SKU-COW-054",
+    "barcode": "CWLG-87655",
+    "stock_quantity": 20,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758301813/student-delivery/products/file_yxciey.jpg",
+        "public_id": "student-delivery/products/file_yxciey",
+        "is_primary": true,
+        "_id": "68cd8e76be07ec683d71633e"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T17:10:14.745Z",
+    "updated_at": "2025-09-19T17:10:14.747Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd8e04be07ec683d716338",
+    "name": "Sausage Rolls",
+    "description": "",
+    "price": 100,
+    "category": "Bakery",
+    "sku": "SKU-SAU-588",
+    "barcode": "GMP002",
+    "stock_quantity": 10,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758301699/student-delivery/products/file_lvd38e.jpg",
+        "public_id": "student-delivery/products/file_lvd38e",
+        "is_primary": true,
+        "_id": "68cd8e04be07ec683d716339"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T17:08:20.698Z",
+    "updated_at": "2025-09-19T17:08:20.706Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd7e22752d22cc54516f9c",
+    "name": "Mega Growth Anti-Damage creme relaxer",
+    "description": "",
+    "price": 250,
+    "category": "Creams",
+    "sku": "SKU-MEG-104",
+    "barcode": "6154000320379",
+    "stock_quantity": 50,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758297633/student-delivery/products/file_tlopxo.jpg",
+        "public_id": "student-delivery/products/file_tlopxo",
+        "is_primary": true,
+        "_id": "68cd7e22752d22cc54516f9d"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T16:00:34.988Z",
+    "updated_at": "2025-09-19T16:00:34.995Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd7226752d22cc54516bed",
+    "name": "Nigerian Rice",
+    "description": "",
+    "price": 80,
+    "category": "Food",
+    "sku": "SKU-NIG-766",
+    "barcode": "NIG~RICE",
+    "stock_quantity": 22,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758294566/student-delivery/products/file_zcdsej.jpg",
+        "public_id": "student-delivery/products/file_zcdsej",
+        "is_primary": true,
+        "_id": "68cd7226752d22cc54516bee"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T15:09:26.836Z",
+    "updated_at": "2025-09-19T15:12:01.785Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd7198752d22cc54516be8",
+    "name": "INDOMIE ONION FLAVOUR",
+    "description": "",
+    "price": 40,
+    "category": "Food",
+    "sku": "SKU-IND-417",
+    "barcode": "89686130195",
+    "stock_quantity": 49,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758294423/student-delivery/products/file_idqwmf.jpg",
+        "public_id": "student-delivery/products/file_idqwmf",
+        "is_primary": true,
+        "_id": "68cd7198752d22cc54516be9"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T15:07:04.252Z",
+    "updated_at": "2025-09-19T15:07:04.254Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd70ea752d22cc54516be3",
+    "name": "SPAGHETTI",
+    "description": "",
+    "price": 45,
+    "category": "Food",
+    "sku": "SKU-SPA-628",
+    "barcode": "98543288",
+    "stock_quantity": 30,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758294250/student-delivery/products/file_r47nwd.jpg",
+        "public_id": "student-delivery/products/file_r47nwd",
+        "is_primary": true,
+        "_id": "68cd70ea752d22cc54516be4"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T15:04:10.926Z",
+    "updated_at": "2025-09-19T15:04:10.929Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd705c752d22cc54516bde",
+    "name": "Bread (SMALL)",
+    "description": "",
+    "price": 90,
+    "category": "Bakery",
+    "sku": "SKU-BRE-112",
+    "barcode": "2200912000282",
+    "stock_quantity": 8,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758294107/student-delivery/products/file_qqmg3w.jpg",
+        "public_id": "student-delivery/products/file_qqmg3w",
+        "is_primary": true,
+        "_id": "68cd705c752d22cc54516bdf"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T15:01:48.060Z",
+    "updated_at": "2025-09-19T15:01:48.064Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd6f9d752d22cc54516bd9",
+    "name": "Semo",
+    "description": "",
+    "price": 55,
+    "category": "Flour",
+    "sku": "SKU-SEM-313",
+    "barcode": "SEMO-3653",
+    "stock_quantity": 25,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758293917/student-delivery/products/file_pdjedj.jpg",
+        "public_id": "student-delivery/products/file_pdjedj",
+        "is_primary": true,
+        "_id": "68cd6f9d752d22cc54516bda"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T14:58:37.632Z",
+    "updated_at": "2025-09-19T14:58:37.637Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd6f04752d22cc54516bd4",
+    "name": "Bread (BIG)",
+    "description": "",
+    "price": 100,
+    "category": "Bakery",
+    "sku": "SKU-BRE-584",
+    "barcode": "2112500001925",
+    "stock_quantity": 10,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758293763/student-delivery/products/file_ena9sh.jpg",
+        "public_id": "student-delivery/products/file_ena9sh",
+        "is_primary": true,
+        "_id": "68cd6f04752d22cc54516bd5"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T14:56:04.226Z",
+    "updated_at": "2025-09-19T14:56:04.262Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd633e752d22cc54516952",
+    "name": "Frozen Spinach",
+    "description": "",
+    "price": 95,
+    "category": "Vegetables",
+    "sku": "SKU-FRO-810",
+    "barcode": "8901234567883",
+    "stock_quantity": 30,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758290750/student-delivery/products/file_mxmbwm.jpg",
+        "public_id": "student-delivery/products/file_mxmbwm",
+        "is_primary": true,
+        "_id": "68cd633e752d22cc54516953"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T14:05:50.750Z",
+    "updated_at": "2025-09-19T14:05:50.755Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd61e7752d22cc5451694d",
+    "name": "Kpomo Meat",
+    "description": "",
+    "price": 150,
+    "category": "Red Meat",
+    "sku": "SKU-KPO-749",
+    "barcode": "KPMO-09655",
+    "stock_quantity": 15,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758290406/student-delivery/products/file_qn8zpb.jpg",
+        "public_id": "student-delivery/products/file_qn8zpb",
+        "is_primary": true,
+        "_id": "68cd61e7752d22cc5451694e"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T14:00:07.459Z",
+    "updated_at": "2025-09-19T15:12:02.518Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd5f2b752d22cc545168ed",
+    "name": "Assorted Meat",
+    "description": "",
+    "price": 130,
+    "category": "Red Meat",
+    "sku": "SKU-ASS-506",
+    "barcode": "ASTD-98563",
+    "stock_quantity": 15,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758289707/student-delivery/products/file_p2wgbr.jpg",
+        "public_id": "student-delivery/products/file_p2wgbr",
+        "is_primary": true,
+        "_id": "68cd5f2b752d22cc545168ee"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T13:48:27.793Z",
+    "updated_at": "2025-09-19T13:48:27.818Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cd5d8c752d22cc545168e8",
+    "name": "Ripped Plantians",
+    "description": "",
+    "price": 188,
+    "category": "Fruits",
+    "sku": "SKU-RIP-259",
+    "barcode": "PLANT-6831",
+    "stock_quantity": 23,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758289291/student-delivery/products/file_krle9f.jpg",
+        "public_id": "student-delivery/products/file_krle9f",
+        "is_primary": true,
+        "_id": "68cd5d8c752d22cc545168e9"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-19T13:41:32.375Z",
+    "updated_at": "2025-09-19T13:41:32.378Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cc85d29dbc1877fcd94ddf",
+    "name": "Crayfish seasoning",
+    "description": "",
+    "price": 16,
+    "category": "Spices",
+    "sku": "SKU-CRA-249",
+    "barcode": "001FS-CRA",
+    "stock_quantity": 40,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758234066/student-delivery/products/file_cqv5gn.jpg",
+        "public_id": "student-delivery/products/file_cqv5gn",
+        "is_primary": true,
+        "_id": "68cc85d29dbc1877fcd94de0"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-18T22:21:06.757Z",
+    "updated_at": "2025-09-18T22:21:06.760Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cc84379dbc1877fcd94dda",
+    "name": "7UP (330 ML)",
+    "description": "",
+    "price": 30,
+    "category": "Beverages",
+    "sku": "SKU-7UP-727",
+    "barcode": "8697458871126",
+    "stock_quantity": 23,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758233655/student-delivery/products/file_iwq0ec.jpg",
+        "public_id": "student-delivery/products/file_iwq0ec",
+        "is_primary": true,
+        "_id": "68cc84379dbc1877fcd94ddb"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-18T22:14:15.931Z",
+    "updated_at": "2025-09-18T22:14:15.935Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cc6740ed41247136e23a7e",
+    "name": "Lasor Pepper soup spice",
+    "description": "",
+    "price": 150,
+    "category": "Spices",
+    "sku": "SKU-LAS-533",
+    "barcode": "6156000109220",
+    "stock_quantity": 34,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758226239/student-delivery/products/file_zitaae.jpg",
+        "public_id": "student-delivery/products/file_zitaae",
+        "is_primary": true,
+        "_id": "68cc6740ed41247136e23a7f"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-18T20:10:40.533Z",
+    "updated_at": "2025-09-18T20:17:32.992Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cc07e214d57f450e495292",
+    "name": "Fish",
+    "description": "",
+    "price": 290,
+    "category": "Fronzen Items",
+    "sku": "SKU-FIS-636",
+    "barcode": "8566265365656",
+    "stock_quantity": 33,
+    "min_stock_level": 5,
+    "unit": "piece",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/dwrbtwtn5/image/upload/v1758201825/student-delivery/products/file_poshqv.jpg",
+        "public_id": "student-delivery/products/file_poshqv",
+        "is_primary": true,
+        "_id": "68cc07e214d57f450e495293"
+      }
+    ],
+    "tags": [],
+    "is_active": true,
+    "is_featured": false,
+    "created_by": "68cb6c620a8bd397d9ac9772",
+    "store_id": "default-store",
+    "created_at": "2025-09-18T13:23:46.232Z",
+    "updated_at": "2025-09-21T16:31:16.007Z",
+    "__v": 0
+  }
+]
