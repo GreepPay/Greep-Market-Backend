@@ -15,7 +15,7 @@ const http = require('http');
 // Parse command line arguments
 const args = process.argv.slice(2);
 const options = {
-    apiUrl: 'http://localhost:3001',
+    apiUrl: process.env.API_URL || process.env.SERVER_URL || 'http://localhost:3001',
     output: null,
     token: null
 };
@@ -182,10 +182,13 @@ if (args.includes('--help') || args.includes('-h')) {
     console.log('=====================================\n');
     console.log('Usage: node scripts/export-products-api.js [options]\n');
     console.log('Options:');
-    console.log('  --api-url <url>     API base URL (default: http://localhost:3001)');
+    console.log('  --api-url <url>     API base URL (default: from API_URL or SERVER_URL env var, fallback: http://localhost:3001)');
     console.log('  --output <file>     Output file path');
     console.log('  --token <token>     Authentication token (if required)');
     console.log('  --help, -h          Show this help message\n');
+    console.log('Environment Variables:');
+    console.log('  API_URL             API base URL (e.g., https://api.example.com)');
+    console.log('  SERVER_URL          Alternative to API_URL');
     console.log('Examples:');
     console.log('  node scripts/export-products-api.js');
     console.log('  node scripts/export-products-api.js --output my-products.json');

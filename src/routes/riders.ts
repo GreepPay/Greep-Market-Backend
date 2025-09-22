@@ -307,4 +307,104 @@ router.post('/:id/balance', [
   }
 }));
 
+/**
+ * @route   POST /api/v1/riders/:id/give-cash
+ * @desc    Give cash to rider (increase current balance and pending reconciliation)
+ * @access  Private
+ */
+router.post('/:id/give-cash', [
+  param('id').isMongoId().withMessage('Invalid rider ID'),
+  body('amount')
+    .isNumeric()
+    .withMessage('Amount must be a number')
+    .isFloat({ min: 0.01 })
+    .withMessage('Amount must be greater than 0'),
+], asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
+      });
+    }
+
+    const riderId = req.params.id;
+    const { amount } = req.body;
+
+    const rider = await RiderService.giveCashToRider(riderId, amount);
+    
+    if (!rider) {
+      return res.status(404).json({
+        success: false,
+        message: 'Rider not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Cash given to rider successfully',
+      data: rider,
+    });
+  } catch (error) {
+    logger.error('Error giving cash to rider:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to give cash to rider',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}));
+
+/**
+ * @route   POST /api/v1/riders/:id/reconcile
+ * @desc    Reconcile rider cash (reduce pending reconciliation)
+ * @access  Private
+ */
+router.post('/:id/reconcile', [
+  param('id').isMongoId().withMessage('Invalid rider ID'),
+  body('amount')
+    .isNumeric()
+    .withMessage('Amount must be a number')
+    .isFloat({ min: 0.01 })
+    .withMessage('Amount must be greater than 0'),
+], asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
+      });
+    }
+
+    const riderId = req.params.id;
+    const { amount } = req.body;
+
+    const rider = await RiderService.reconcileRider(riderId, amount);
+    
+    if (!rider) {
+      return res.status(404).json({
+        success: false,
+        message: 'Rider not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Rider reconciled successfully',
+      data: rider,
+    });
+  } catch (error) {
+    logger.error('Error reconciling rider:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reconcile rider',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}));
+
 export default router;

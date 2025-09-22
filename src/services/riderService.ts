@@ -256,4 +256,96 @@ export class RiderService {
       throw error;
     }
   }
+
+  /**
+   * Give cash to rider (increase current balance and pending reconciliation)
+   */
+  static async giveCashToRider(riderId: string, amount: number): Promise<RiderResponse | null> {
+    try {
+      const rider = await Rider.findById(riderId);
+      if (!rider) {
+        return null;
+      }
+
+      const updateData = {
+        current_balance: rider.current_balance + amount,
+        pending_reconciliation: rider.pending_reconciliation + amount,
+        updated_at: new Date(),
+      };
+
+      const updatedRider = await Rider.findByIdAndUpdate(
+        riderId,
+        updateData,
+        { new: true, runValidators: true }
+      );
+
+      if (!updatedRider) {
+        return null;
+      }
+
+      return {
+        _id: updatedRider._id,
+        name: updatedRider.name,
+        phone: updatedRider.phone,
+        email: updatedRider.email,
+        is_active: updatedRider.is_active,
+        current_balance: updatedRider.current_balance,
+        total_delivered: updatedRider.total_delivered,
+        total_reconciled: updatedRider.total_reconciled,
+        pending_reconciliation: updatedRider.pending_reconciliation,
+        store_id: updatedRider.store_id,
+        created_at: updatedRider.created_at,
+        updated_at: updatedRider.updated_at,
+      };
+    } catch (error) {
+      logger.error('Error giving cash to rider:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reconcile rider cash (reduce pending reconciliation)
+   */
+  static async reconcileRider(riderId: string, amount: number): Promise<RiderResponse | null> {
+    try {
+      const rider = await Rider.findById(riderId);
+      if (!rider) {
+        return null;
+      }
+
+      const updateData = {
+        pending_reconciliation: Math.max(0, rider.pending_reconciliation - amount),
+        total_reconciled: rider.total_reconciled + amount,
+        updated_at: new Date(),
+      };
+
+      const updatedRider = await Rider.findByIdAndUpdate(
+        riderId,
+        updateData,
+        { new: true, runValidators: true }
+      );
+
+      if (!updatedRider) {
+        return null;
+      }
+
+      return {
+        _id: updatedRider._id,
+        name: updatedRider.name,
+        phone: updatedRider.phone,
+        email: updatedRider.email,
+        is_active: updatedRider.is_active,
+        current_balance: updatedRider.current_balance,
+        total_delivered: updatedRider.total_delivered,
+        total_reconciled: updatedRider.total_reconciled,
+        pending_reconciliation: updatedRider.pending_reconciliation,
+        store_id: updatedRider.store_id,
+        created_at: updatedRider.created_at,
+        updated_at: updatedRider.updated_at,
+      };
+    } catch (error) {
+      logger.error('Error reconciling rider:', error);
+      throw error;
+    }
+  }
 }
