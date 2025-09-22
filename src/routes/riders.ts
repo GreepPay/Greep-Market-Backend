@@ -89,10 +89,10 @@ router.post('/', [
     .withMessage('Name must be between 2 and 100 characters'),
   body('phone')
     .trim()
-    .matches(/^[\+]?[1-9][\d]{0,15}$/)
+    .matches(/^[\+]?[0-9][\d]{0,15}$/)
     .withMessage('Invalid phone number format'),
   body('email')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isEmail()
     .normalizeEmail()
     .withMessage('Invalid email format'),
@@ -150,10 +150,10 @@ router.put('/:id', [
   body('phone')
     .optional()
     .trim()
-    .matches(/^[\+]?[1-9][\d]{0,15}$/)
+    .matches(/^[\+]?[0-9][\d]{0,15}$/)
     .withMessage('Invalid phone number format'),
   body('email')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isEmail()
     .normalizeEmail()
     .withMessage('Invalid email format'),
