@@ -108,6 +108,9 @@ export class AnalyticsService {
    */
   static async getDashboardMetrics(storeId?: string, filters?: DashboardFilters): Promise<DashboardMetrics> {
     try {
+      // Debug logging
+      logger.info('Dashboard metrics request:', { storeId, filters });
+      
       // Build base query filters
       const productFilter = storeId ? { store_id: storeId } : {};
       let transactionFilter: any = storeId ? { store_id: storeId } : {};
@@ -133,6 +136,7 @@ export class AnalyticsService {
         const dateFilter = this.getDateFilter(filters);
         if (dateFilter) {
           transactionFilter.created_at = dateFilter;
+          logger.info('Applied date filter:', { dateFilter, transactionFilter });
         }
       } else {
         transactionFilter.status = 'completed'; // Default to completed
@@ -145,12 +149,30 @@ export class AnalyticsService {
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
       // Create separate filters for today and monthly calculations
-      const todayFilter = { ...transactionFilter, created_at: { $gte: startOfDay } };
-      const monthlyFilter = { ...transactionFilter, created_at: { $gte: startOfMonth } };
+      // When dateRange filter is applied, use it for all calculations
+      // When no dateRange filter, use separate today/monthly filters
+      const todayFilter = filters && filters.dateRange ? 
+        transactionFilter : 
+        { ...transactionFilter, created_at: { $gte: startOfDay } };
+      
+      const monthlyFilter = filters && filters.dateRange ? 
+        transactionFilter : 
+        { ...transactionFilter, created_at: { $gte: startOfMonth } };
 
-      // Get expense data
-      const expenseStats = await ExpenseService.getExpenseStats(storeId);
-      const monthlyExpenseStats = await ExpenseService.getExpenseStats(storeId, startOfMonth, endOfMonth);
+      // Get expense data - apply same date filtering as transactions
+      const expenseStats = filters && filters.dateRange ? 
+        await ExpenseService.getExpenseStats(storeId, 
+          filters.startDate ? new Date(filters.startDate) : undefined,
+          filters.endDate ? new Date(filters.endDate) : undefined
+        ) : 
+        await ExpenseService.getExpenseStats(storeId);
+        
+      const monthlyExpenseStats = filters && filters.dateRange ? 
+        await ExpenseService.getExpenseStats(storeId, 
+          filters.startDate ? new Date(filters.startDate) : undefined,
+          filters.endDate ? new Date(filters.endDate) : undefined
+        ) : 
+        await ExpenseService.getExpenseStats(storeId, startOfMonth, endOfMonth);
 
       // Parallel queries for better performance
       const [
@@ -195,17 +217,20 @@ export class AnalyticsService {
       const monthlyExpenses = monthlyExpenseStats.totalAmount;
       const netProfit = (totalSales[0]?.total || 0) - totalExpenses;
 
+      // When filters are applied, adjust the response structure
+      const isFiltered = filters && filters.dateRange;
+      
       return {
-        totalSales: totalSales[0]?.total || 0,
-        totalTransactions,
+        totalSales: isFiltered ? totalSales[0]?.total || 0 : totalSales[0]?.total || 0,
+        totalTransactions: isFiltered ? totalTransactions : totalTransactions,
         averageTransactionValue,
         growthRate,
         totalProducts,
         lowStockItems: lowStockProducts,
-        todaySales,
-        monthlySales,
+        todaySales: isFiltered ? totalSales[0]?.total || 0 : todaySales,
+        monthlySales: isFiltered ? totalSales[0]?.total || 0 : monthlySales,
         totalExpenses,
-        monthlyExpenses,
+        monthlyExpenses: isFiltered ? totalExpenses : monthlyExpenses,
         netProfit,
         topProducts: topProductsData,
         recentTransactions: recentTransactions.map(t => ({
@@ -717,11 +742,15 @@ export class AnalyticsService {
   private static getDateFilter(filters?: DashboardFilters): any {
     if (!filters) return null;
 
-    // If custom date range is provided
+    // If custom date range is provided (convert strings to dates)
     if (filters.startDate && filters.endDate) {
+      const startDate = new Date(filters.startDate);
+      const endDate = new Date(filters.endDate);
+      // Set end date to end of day
+      endDate.setHours(23, 59, 59, 999);
       return {
-        $gte: filters.startDate,
-        $lte: filters.endDate
+        $gte: startDate,
+        $lte: endDate
       };
     }
 
@@ -731,6 +760,13 @@ export class AnalyticsService {
       let startDate: Date;
 
       switch (filters.dateRange) {
+        case 'today':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+          return {
+            $gte: startDate,
+            $lte: endOfDay
+          };
         case '7d':
           startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
           break;
