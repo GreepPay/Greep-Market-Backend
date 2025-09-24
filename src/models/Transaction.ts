@@ -39,7 +39,7 @@ const transactionItemSchema = new Schema<TransactionItem>({
   quantity: {
     type: Number,
     required: true,
-    min: 1,
+    min: 0,
   },
   unit_price: {
     type: Number,

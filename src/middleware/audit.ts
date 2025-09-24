@@ -7,26 +7,34 @@ import { logger } from '../utils/logger';
  */
 export const auditMiddleware = (req: Request, res: Response, next: NextFunction) => {
   // Skip logging for certain paths
-  const skipPaths = ['/health', '/metrics', '/favicon.ico'];
+  const skipPaths = ['/health', '/metrics', '/favicon.ico', '/static', '/assets'];
   if (skipPaths.some(path => req.path.includes(path))) {
     return next();
   }
 
-  // Log the request
-  const user = (req as any).user;
-  const userInfo = user ? {
-    user_id: user.id || user._id,
-    user_email: user.email,
-    user_role: user.role,
-  } : { user_id: 'anonymous', user_email: 'anonymous', user_role: 'guest' };
+  // Only log significant requests (not GET requests to static content)
+  const shouldLog = req.method !== 'GET' || 
+                   req.path.includes('/api/') || 
+                   req.path.includes('/auth/') ||
+                   req.path.includes('/admin/');
 
-  logger.info('Request', {
-    method: req.method,
-    path: req.path,
-    user: userInfo,
-    ip: req.ip,
-    userAgent: req.headers['user-agent'],
-  });
+  if (shouldLog) {
+    const user = (req as any).user;
+    const userInfo = user ? {
+      user_id: user.id || user._id,
+      user_email: user.email,
+      user_role: user.role,
+    } : { user_id: 'anonymous', user_email: 'anonymous', user_role: 'guest' };
+
+    // Use debug level instead of info to reduce noise
+    logger.debug(`${req.method} ${req.path}`, {
+      method: req.method,
+      path: req.path,
+      user: userInfo,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+  }
 
   next();
 };

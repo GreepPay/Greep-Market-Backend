@@ -113,19 +113,15 @@ export class TransactionService {
   }
 
   /**
-   * Get transactions with pagination
+   * Get transactions with filters
    */
   static async getTransactions(
-    page: number = 1,
-    limit: number = 20,
     storeId?: string,
     status?: string,
     paymentMethod?: string
   ): Promise<{
     transactions: TransactionResponse[];
     total: number;
-    page: number;
-    pages: number;
   }> {
     try {
       const query: any = {};
@@ -142,21 +138,15 @@ export class TransactionService {
         query.payment_method = paymentMethod;
       }
 
-      const skip = (page - 1) * limit;
-
       const [transactions, total] = await Promise.all([
         Transaction.find(query)
-          .sort({ created_at: -1 })
-          .skip(skip)
-          .limit(limit),
+          .sort({ created_at: -1 }),
         Transaction.countDocuments(query),
       ]);
 
       return {
         transactions: transactions.map(t => this.formatTransactionResponse(t)),
         total,
-        page,
-        pages: Math.ceil(total / limit),
       };
     } catch (error) {
       logger.error('Error getting transactions:', error);

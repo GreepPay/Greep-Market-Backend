@@ -351,4 +351,17 @@ export class GoalService {
         break;
     }
   }
+
+  /**
+   * Get a goal by ID
+   */
+  static async getGoalById(goalId: string): Promise<IGoal | null> {
+    try {
+      const goal = await Goal.findById(goalId);
+      return goal;
+    } catch (error) {
+      logger.error('Error getting goal by ID:', error);
+      return null;
+    }
+  }
 }

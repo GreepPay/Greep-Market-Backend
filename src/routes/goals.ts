@@ -3,6 +3,7 @@ import { body, param, query, validationResult } from 'express-validator';
 import { authenticate, robustAuthenticate, optionalAuth } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { GoalService } from '../services/goalService';
+import { AuditService } from '../services/auditService';
 import { logger } from '../utils/logger';
 
 const router = Router();
@@ -173,6 +174,14 @@ router.post('/', [
     // Create the goal
     const goal = await GoalService.createGoal(goalData);
     
+    // Log the goal creation
+    await AuditService.logCreate(
+      req,
+      'GOAL',
+      goal._id,
+      `${goal.goal_type} goal - ${goal.target_amount} ${goal.currency}`
+    );
+    
     res.status(201).json({
       success: true,
       message: 'Goal created successfully',
@@ -270,6 +279,8 @@ router.put('/:id', [
       updateData.period_end = new Date(req.body.period_end);
     }
 
+    // Get the old goal data for audit logging
+    const oldGoal = await GoalService.getGoalById(goalId);
     const goal = await GoalService.updateGoal(goalId, userId, updateData);
     
     if (!goal) {
@@ -279,6 +290,16 @@ router.put('/:id', [
         code: 'GOAL_NOT_FOUND'
       });
     }
+
+    // Log the goal update
+    await AuditService.logUpdate(
+      req,
+      'GOAL',
+      goalId,
+      `${goal.goal_type} goal - ${goal.target_amount} ${goal.currency}`,
+      oldGoal,
+      goal
+    );
 
     res.json({
       success: true,
@@ -328,6 +349,8 @@ router.delete('/:id', [
     const goalId = req.params.id;
     const userId = req.user.id;
     
+    // Get the goal data before deletion for audit logging
+    const goal = await GoalService.getGoalById(goalId);
     const deleted = await GoalService.deleteGoal(goalId, userId);
     
     if (!deleted) {
@@ -337,6 +360,15 @@ router.delete('/:id', [
         code: 'GOAL_NOT_FOUND'
       });
     }
+
+    // Log the goal deletion
+    await AuditService.logDelete(
+      req,
+      'GOAL',
+      goalId,
+      goal ? `${goal.goal_type} goal - ${goal.target_amount} ${goal.currency}` : 'Unknown Goal',
+      goal
+    );
 
     res.json({
       success: true,

@@ -1,7 +1,17 @@
 import { Product } from '../models/Product';
 import { Transaction } from '../models/Transaction';
 import { User } from '../models/User';
+import { ExpenseService } from './expenseService';
 import { logger } from '../utils/logger';
+
+export interface DashboardFilters {
+  dateRange?: string;
+  paymentMethod?: string;
+  orderSource?: string;
+  status?: string;
+  startDate?: Date;
+  endDate?: Date;
+}
 
 export interface DashboardMetrics {
   totalSales: number;
@@ -12,6 +22,9 @@ export interface DashboardMetrics {
   lowStockItems: number;
   todaySales: number;
   monthlySales: number;
+  totalExpenses: number;
+  monthlyExpenses: number;
+  netProfit: number;
   topProducts: Array<{
     productId: string;
     productName: string;
@@ -91,18 +104,53 @@ export interface InventoryAnalytics {
 
 export class AnalyticsService {
   /**
-   * Get dashboard metrics
+   * Get dashboard metrics with filtering support
    */
-  static async getDashboardMetrics(storeId?: string): Promise<DashboardMetrics> {
+  static async getDashboardMetrics(storeId?: string, filters?: DashboardFilters): Promise<DashboardMetrics> {
     try {
-      // Build query filters
+      // Build base query filters
       const productFilter = storeId ? { store_id: storeId } : {};
-      const transactionFilter = storeId ? { store_id: storeId } : {};
+      let transactionFilter: any = storeId ? { store_id: storeId } : {};
 
-      // Get current date ranges
+      // Apply filters
+      if (filters) {
+        // Apply status filter
+        if (filters.status && filters.status !== 'all') {
+          transactionFilter.status = filters.status;
+        } else {
+          transactionFilter.status = 'completed'; // Default to completed
+        }
+
+        // Apply payment method filter
+        if (filters.paymentMethod && filters.paymentMethod !== 'all') {
+          transactionFilter.payment_method = filters.paymentMethod;
+        }
+
+        // Note: order_source filter is not available in current Transaction model
+        // This can be added later if needed
+
+        // Apply date range filter
+        const dateFilter = this.getDateFilter(filters);
+        if (dateFilter) {
+          transactionFilter.created_at = dateFilter;
+        }
+      } else {
+        transactionFilter.status = 'completed'; // Default to completed
+      }
+
+      // Get current date ranges for today/monthly calculations
       const now = new Date();
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+      // Create separate filters for today and monthly calculations
+      const todayFilter = { ...transactionFilter, created_at: { $gte: startOfDay } };
+      const monthlyFilter = { ...transactionFilter, created_at: { $gte: startOfMonth } };
+
+      // Get expense data
+      const expenseStats = await ExpenseService.getExpenseStats(storeId);
+      const monthlyExpenseStats = await ExpenseService.getExpenseStats(storeId, startOfMonth, endOfMonth);
 
       // Parallel queries for better performance
       const [
@@ -118,40 +166,34 @@ export class AnalyticsService {
           ...productFilter, 
           $expr: { $lte: ['$stock_quantity', '$min_stock_level'] }
         }),
-        Transaction.find({ 
-          ...transactionFilter, 
-          created_at: { $gte: startOfDay },
-          status: 'completed'
-        }),
-        Transaction.find({ 
-          ...transactionFilter, 
-          created_at: { $gte: startOfMonth },
-          status: 'completed'
-        }),
-        Transaction.find({ 
-          ...transactionFilter, 
-          status: 'completed'
-        }).sort({ created_at: -1 }).limit(10),
-        this.getTopProducts(storeId, 5)
+        Transaction.find(todayFilter),
+        Transaction.find(monthlyFilter),
+        Transaction.find(transactionFilter).sort({ created_at: -1 }).limit(10),
+        this.getTopProducts(storeId, 5, filters)
       ]);
 
       // Calculate totals
       const todaySales = todayTransactions.reduce((sum, t) => sum + t.total_amount, 0);
       const monthlySales = monthlyTransactions.reduce((sum, t) => sum + t.total_amount, 0);
       const totalSales = await Transaction.aggregate([
-        { $match: { ...transactionFilter, status: 'completed' } },
+        { $match: transactionFilter },
         { $group: { _id: null, total: { $sum: '$total_amount' } } }
       ]);
 
       // Calculate transaction count and average transaction value
-      const totalTransactions = await Transaction.countDocuments({ ...transactionFilter, status: 'completed' });
+      const totalTransactions = await Transaction.countDocuments(transactionFilter);
       const averageTransactionValue = totalTransactions > 0 ? (totalSales[0]?.total || 0) / totalTransactions : 0;
 
-      // Calculate growth rate (current month vs previous month)
-      const growthRate = await this.calculateGrowthRate(storeId);
+      // Calculate growth rate (current period vs previous period)
+      const growthRate = await this.calculateGrowthRate(storeId, filters);
 
       // Get sales by month for the last 12 months
-      const salesByMonth = await this.getSalesByMonth(storeId);
+      const salesByMonth = await this.getSalesByMonth(storeId, filters);
+
+      // Calculate expense totals
+      const totalExpenses = expenseStats.totalAmount;
+      const monthlyExpenses = monthlyExpenseStats.totalAmount;
+      const netProfit = (totalSales[0]?.total || 0) - totalExpenses;
 
       return {
         totalSales: totalSales[0]?.total || 0,
@@ -162,6 +204,9 @@ export class AnalyticsService {
         lowStockItems: lowStockProducts,
         todaySales,
         monthlySales,
+        totalExpenses,
+        monthlyExpenses,
+        netProfit,
         topProducts: topProductsData,
         recentTransactions: recentTransactions.map(t => ({
           id: t._id.toString(),
@@ -561,6 +606,60 @@ export class AnalyticsService {
   }
 
   /**
+   * Get filtered transactions for dashboard
+   */
+  static async getFilteredTransactions(storeId?: string, filters?: DashboardFilters, limit: number = 50): Promise<any[]> {
+    try {
+      let transactionFilter: any = storeId ? { store_id: storeId } : {};
+      
+      // Apply filters
+      if (filters) {
+        // Apply status filter
+        if (filters.status && filters.status !== 'all') {
+          transactionFilter.status = filters.status;
+        } else {
+          transactionFilter.status = 'completed'; // Default to completed
+        }
+
+        // Apply payment method filter
+        if (filters.paymentMethod && filters.paymentMethod !== 'all') {
+          transactionFilter.payment_method = filters.paymentMethod;
+        }
+
+        // Note: order_source filter is not available in current Transaction model
+        // This can be added later if needed
+
+        // Apply date range filter
+        const dateFilter = this.getDateFilter(filters);
+        if (dateFilter) {
+          transactionFilter.created_at = dateFilter;
+        }
+      } else {
+        transactionFilter.status = 'completed'; // Default to completed
+      }
+
+      const transactions = await Transaction.find(transactionFilter)
+        .sort({ created_at: -1 })
+        .limit(limit)
+        .select('_id total_amount payment_method status created_at customer_id items')
+        .lean();
+
+      return transactions.map(t => ({
+        id: t._id.toString(),
+        totalAmount: t.total_amount,
+        paymentMethod: t.payment_method,
+        status: t.status,
+        createdAt: t.created_at,
+        customerId: t.customer_id,
+        itemCount: t.items?.length || 0
+      }));
+    } catch (error) {
+      logger.error('Error getting filtered transactions:', error);
+      return [];
+    }
+  }
+
+  /**
    * Get inventory analytics
    */
   static async getInventoryAnalytics(storeId?: string): Promise<InventoryAnalytics> {
@@ -613,14 +712,87 @@ export class AnalyticsService {
   }
 
   /**
+   * Get date filter based on filters
+   */
+  private static getDateFilter(filters?: DashboardFilters): any {
+    if (!filters) return null;
+
+    // If custom date range is provided
+    if (filters.startDate && filters.endDate) {
+      return {
+        $gte: filters.startDate,
+        $lte: filters.endDate
+      };
+    }
+
+    // If date range is provided
+    if (filters.dateRange) {
+      const now = new Date();
+      let startDate: Date;
+
+      switch (filters.dateRange) {
+        case '7d':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '30d':
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case '90d':
+          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        case '1y':
+          startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+          break;
+        default:
+          return null;
+      }
+
+      return {
+        $gte: startDate,
+        $lte: now
+      };
+    }
+
+    return null;
+  }
+
+  /**
    * Get top selling products
    */
-  private static async getTopProducts(storeId?: string, limit: number = 10): Promise<any[]> {
+  private static async getTopProducts(storeId?: string, limit: number = 10, filters?: DashboardFilters): Promise<any[]> {
     try {
-      const matchFilter = storeId ? { store_id: storeId } : {};
+      let matchFilter: any = storeId ? { store_id: storeId } : {};
+      
+      // Apply filters
+      if (filters) {
+        // Apply status filter
+        if (filters.status && filters.status !== 'all') {
+          matchFilter.status = filters.status;
+        } else {
+          matchFilter.status = 'completed'; // Default to completed
+        }
+
+        // Apply payment method filter
+        if (filters.paymentMethod && filters.paymentMethod !== 'all') {
+          matchFilter.payment_method = filters.paymentMethod;
+        }
+
+        // Apply order source filter
+        if (filters.orderSource && filters.orderSource !== 'all') {
+          matchFilter.order_source = filters.orderSource;
+        }
+
+        // Apply date range filter
+        const dateFilter = this.getDateFilter(filters);
+        if (dateFilter) {
+          matchFilter.created_at = dateFilter;
+        }
+      } else {
+        matchFilter.status = 'completed'; // Default to completed
+      }
       
       const topProducts = await Transaction.aggregate([
-        { $match: { ...matchFilter, status: 'completed' } },
+        { $match: matchFilter },
         { $unwind: '$items' },
         { $group: { 
           _id: '$items.product_id', 
@@ -649,12 +821,40 @@ export class AnalyticsService {
   /**
    * Get sales by month
    */
-  private static async getSalesByMonth(storeId?: string): Promise<any[]> {
+  private static async getSalesByMonth(storeId?: string, filters?: DashboardFilters): Promise<any[]> {
     try {
-      const matchFilter = storeId ? { store_id: storeId } : {};
+      let matchFilter: any = storeId ? { store_id: storeId } : {};
+      
+      // Apply filters
+      if (filters) {
+        // Apply status filter
+        if (filters.status && filters.status !== 'all') {
+          matchFilter.status = filters.status;
+        } else {
+          matchFilter.status = 'completed'; // Default to completed
+        }
+
+        // Apply payment method filter
+        if (filters.paymentMethod && filters.paymentMethod !== 'all') {
+          matchFilter.payment_method = filters.paymentMethod;
+        }
+
+        // Apply order source filter
+        if (filters.orderSource && filters.orderSource !== 'all') {
+          matchFilter.order_source = filters.orderSource;
+        }
+
+        // Apply date range filter
+        const dateFilter = this.getDateFilter(filters);
+        if (dateFilter) {
+          matchFilter.created_at = dateFilter;
+        }
+      } else {
+        matchFilter.status = 'completed'; // Default to completed
+      }
       
       const salesByMonth = await Transaction.aggregate([
-        { $match: { ...matchFilter, status: 'completed' } },
+        { $match: matchFilter },
         { $group: { 
           _id: { 
             year: { $year: '$created_at' }, 
@@ -681,30 +881,65 @@ export class AnalyticsService {
   }
 
   /**
-   * Calculate growth rate (current month vs previous month)
+   * Calculate growth rate (current period vs previous period)
    */
-  private static async calculateGrowthRate(storeId?: string): Promise<number> {
+  private static async calculateGrowthRate(storeId?: string, filters?: DashboardFilters): Promise<number> {
     try {
       const now = new Date();
-      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      let currentPeriodStart: Date;
+      let previousPeriodStart: Date;
+      let previousPeriodEnd: Date;
 
-      const filter = storeId ? { store_id: storeId, status: 'completed' } : { status: 'completed' };
+      // Determine period based on filters
+      if (filters?.dateRange) {
+        const days = this.getDaysFromDateRange(filters.dateRange);
+        currentPeriodStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+        previousPeriodStart = new Date(currentPeriodStart.getTime() - days * 24 * 60 * 60 * 1000);
+        previousPeriodEnd = new Date(currentPeriodStart.getTime() - 1);
+      } else {
+        // Default to monthly comparison
+        currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        previousPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        previousPeriodEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      }
 
-      const [currentMonthSales, previousMonthSales] = await Promise.all([
+      let baseFilter: any = storeId ? { store_id: storeId } : {};
+      
+      // Apply filters
+      if (filters) {
+        // Apply status filter
+        if (filters.status && filters.status !== 'all') {
+          baseFilter.status = filters.status;
+        } else {
+          baseFilter.status = 'completed'; // Default to completed
+        }
+
+        // Apply payment method filter
+        if (filters.paymentMethod && filters.paymentMethod !== 'all') {
+          baseFilter.payment_method = filters.paymentMethod;
+        }
+
+        // Apply order source filter
+        if (filters.orderSource && filters.orderSource !== 'all') {
+          baseFilter.order_source = filters.orderSource;
+        }
+      } else {
+        baseFilter.status = 'completed'; // Default to completed
+      }
+
+      const [currentPeriodSales, previousPeriodSales] = await Promise.all([
         Transaction.aggregate([
-          { $match: { ...filter, created_at: { $gte: currentMonthStart } } },
+          { $match: { ...baseFilter, created_at: { $gte: currentPeriodStart } } },
           { $group: { _id: null, total: { $sum: '$total_amount' } } }
         ]),
         Transaction.aggregate([
-          { $match: { ...filter, created_at: { $gte: previousMonthStart, $lte: previousMonthEnd } } },
+          { $match: { ...baseFilter, created_at: { $gte: previousPeriodStart, $lte: previousPeriodEnd } } },
           { $group: { _id: null, total: { $sum: '$total_amount' } } }
         ])
       ]);
 
-      const currentTotal = currentMonthSales[0]?.total || 0;
-      const previousTotal = previousMonthSales[0]?.total || 0;
+      const currentTotal = currentPeriodSales[0]?.total || 0;
+      const previousTotal = previousPeriodSales[0]?.total || 0;
 
       if (previousTotal === 0) {
         return currentTotal > 0 ? 100 : 0; // 100% growth if no previous data but current exists
@@ -715,6 +950,19 @@ export class AnalyticsService {
     } catch (error) {
       logger.error('Error calculating growth rate:', error);
       return 0;
+    }
+  }
+
+  /**
+   * Get number of days from date range string
+   */
+  private static getDaysFromDateRange(dateRange: string): number {
+    switch (dateRange) {
+      case '7d': return 7;
+      case '30d': return 30;
+      case '90d': return 90;
+      case '1y': return 365;
+      default: return 30;
     }
   }
 

@@ -189,6 +189,16 @@ router.post('/logout', authenticate, asyncHandler(async (req, res) => {
   const success = await authService.logout(req.user!.id, token || '');
 
   if (success) {
+    // Log the logout action
+    await AuditService.logAuth(
+      req,
+      'LOGOUT',
+      req.user!.id,
+      req.user!.email,
+      req.user!.role,
+      req.user!.storeId
+    );
+
     res.json({
       success: true,
       message: 'Logout successful',
