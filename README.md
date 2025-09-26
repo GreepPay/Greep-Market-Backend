@@ -41,7 +41,7 @@ This system follows a microservices architecture with the following components:
 ### Prerequisites
 - Node.js 18+
 - Docker and Docker Compose
-- PostgreSQL 15 (if running locally)
+- MongoDB (if running locally)
 - Redis 7 (if running locally)
 
 ### Development Setup
