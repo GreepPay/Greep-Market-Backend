@@ -22,7 +22,7 @@ This system follows a microservices architecture with the following components:
 - **Runtime**: Node.js 18+
 - **Language**: TypeScript
 - **Framework**: Express.js
-- **Database**: PostgreSQL 15
+- **Database**: MongoDB
 - **Cache**: Redis 7
 - **Authentication**: JWT with refresh tokens
 - **Validation**: Joi, express-validator
