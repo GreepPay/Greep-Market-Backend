@@ -297,4 +297,160 @@ router.post('/:id/cancel', asyncHandler(async (req, res) => {
   }
 }));
 
+/**
+ * @route   PUT /api/v1/transactions/:id
+ * @desc    Update transaction
+ * @access  Private
+ */
+router.put('/:id', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    // Validate required fields if items are being updated
+    if (updateData.items) {
+      if (!Array.isArray(updateData.items) || updateData.items.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Items array is required and cannot be empty'
+        });
+      }
+
+      // Validate each item
+      for (const item of updateData.items) {
+        if (!item.product_id || !item.quantity || !item.unit_price) {
+          return res.status(400).json({
+            success: false,
+            message: 'Each item must have product_id, quantity, and unit_price'
+          });
+        }
+      }
+    }
+
+    const updatedTransaction = await TransactionService.updateTransaction(id, updateData);
+
+    // Log the transaction update
+    await AuditService.logUpdate(
+      req,
+      'TRANSACTION',
+      id,
+      `Transaction ${id} updated`,
+      {},
+      updateData,
+      {
+        ip_address: req.ip,
+        user_agent: req.get('User-Agent'),
+        store_id: updatedTransaction.store_id,
+        additional_info: {
+          transaction_id: id,
+          updated_fields: Object.keys(updateData),
+          total_amount: updatedTransaction.total_amount,
+          item_count: updatedTransaction.items.length
+        }
+      }
+    );
+
+    res.json({
+      success: true,
+      message: 'Transaction updated successfully',
+      data: updatedTransaction
+    });
+  } catch (error) {
+    logger.error('Error updating transaction:', error);
+    
+    if (error instanceof Error && error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    
+    if (error instanceof Error && error.message.includes('Only pending transactions')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update transaction',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}));
+
+/**
+ * @route   DELETE /api/v1/transactions/:id
+ * @desc    Delete transaction
+ * @access  Private
+ */
+router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Get transaction details before deletion for audit log
+    const transaction = await TransactionService.getTransactionById(id);
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: 'Transaction not found'
+      });
+    }
+
+    await TransactionService.deleteTransaction(id);
+
+    // Log the transaction deletion
+    await AuditService.logDelete(
+      req,
+      'TRANSACTION',
+      id,
+      `Transaction ${id} deleted - Total: $${transaction.total_amount.toFixed(2)}, Items: ${transaction.items.length}`,
+      {
+        ip_address: req.ip,
+        user_agent: req.get('User-Agent'),
+        store_id: transaction.store_id,
+        additional_info: {
+          transaction_id: id,
+          total_amount: transaction.total_amount,
+          payment_method: transaction.payment_method,
+          item_count: transaction.items.length,
+          items_summary: transaction.items.map(item => ({
+            product_name: item.product_name,
+            quantity: item.quantity,
+            total_price: item.total_price
+          }))
+        }
+      }
+    );
+
+    res.json({
+      success: true,
+      message: 'Transaction deleted successfully'
+    });
+  } catch (error) {
+    logger.error('Error deleting transaction:', error);
+    
+    if (error instanceof Error && error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    
+    if (error instanceof Error && error.message.includes('Only pending transactions')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete transaction',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}));
+
 export default router;
