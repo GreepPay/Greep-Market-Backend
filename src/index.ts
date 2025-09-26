@@ -142,6 +142,19 @@ class App {
       });
     });
 
+    // Favicon endpoint to prevent 404 errors
+    this.app.get('/favicon.ico', (req, res) => {
+      res.status(204).end(); // No content response
+    });
+
+    // Static files endpoint to prevent 404 errors for frontend assets
+    this.app.get('/static/*', (req, res) => {
+      res.status(404).json({ 
+        message: 'Static files are served by the frontend development server',
+        note: 'This is a backend API server. Frontend assets are served separately.'
+      });
+    });
+
     // API documentation endpoint
     this.app.get('/api/docs', (req, res) => {
       res.json({

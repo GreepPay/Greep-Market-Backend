@@ -26,7 +26,18 @@ router.get('/', robustAuthenticate, asyncHandler(async (req: Request, res: Respo
     const userId = req.user.id;
     const storeId = req.user.storeId || 'default-store';
     
-    const goals = await GoalService.getUserGoals(userId, storeId);
+    // Extract query parameters
+    const goalType = req.query.goal_type as string;
+    const isActive = req.query.is_active as string;
+    const queryStoreId = req.query.store_id as string;
+    
+    // Use query store_id if provided, otherwise use authenticated user's store_id
+    const finalStoreId = queryStoreId || storeId;
+    
+    const goals = await GoalService.getUserGoals(userId, finalStoreId, {
+      goal_type: goalType,
+      is_active: isActive ? isActive === 'true' : undefined
+    });
     
     res.json({
       success: true,
@@ -129,11 +140,19 @@ router.post('/', [
     .isIn(['TRY', 'USD', 'NGN', 'EUR'])
     .withMessage('Invalid currency. Must be one of: TRY, USD, NGN, EUR'),
   body('period_start')
-    .isISO8601()
-    .withMessage('Invalid start date format. Use ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)'),
+    .custom((value) => {
+      if (!value) return false;
+      const date = new Date(value);
+      return !isNaN(date.getTime());
+    })
+    .withMessage('Invalid start date format. Use ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ) or simple date (YYYY-MM-DD)'),
   body('period_end')
-    .isISO8601()
-    .withMessage('Invalid end date format. Use ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)'),
+    .custom((value) => {
+      if (!value) return false;
+      const date = new Date(value);
+      return !isNaN(date.getTime());
+    })
+    .withMessage('Invalid end date format. Use ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ) or simple date (YYYY-MM-DD)'),
 ], robustAuthenticate, asyncHandler(async (req: Request, res: Response) => {
   try {
     // Check authentication first
@@ -239,8 +258,16 @@ router.put('/:id', [
   param('id').isMongoId().withMessage('Invalid goal ID'),
   body('target_amount').optional().isFloat({ min: 0.01 }).withMessage('Target amount must be a positive number greater than 0'),
   body('currency').optional().isIn(['TRY', 'USD', 'NGN', 'EUR']).withMessage('Invalid currency'),
-  body('period_start').optional().isISO8601().withMessage('Invalid start date format'),
-  body('period_end').optional().isISO8601().withMessage('Invalid end date format'),
+  body('period_start').optional().custom((value) => {
+    if (!value) return true; // Optional field
+    const date = new Date(value);
+    return !isNaN(date.getTime());
+  }).withMessage('Invalid start date format. Use ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ) or simple date (YYYY-MM-DD)'),
+  body('period_end').optional().custom((value) => {
+    if (!value) return true; // Optional field
+    const date = new Date(value);
+    return !isNaN(date.getTime());
+  }).withMessage('Invalid end date format. Use ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ) or simple date (YYYY-MM-DD)'),
 ], robustAuthenticate, asyncHandler(async (req: Request, res: Response) => {
   try {
     if (!req.user) {

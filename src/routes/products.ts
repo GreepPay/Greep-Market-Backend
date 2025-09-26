@@ -87,7 +87,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       is_active, 
       is_featured, 
       sortBy, 
-      sortOrder 
+      sortOrder
     } = req.query;
 
     const result = await ProductService.getProducts({
@@ -97,7 +97,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       is_active: is_active ? is_active === 'true' : undefined,
       is_featured: is_featured ? is_featured === 'true' : undefined,
       sortBy: sortBy as string,
-      sortOrder: sortOrder as 'asc' | 'desc'
+      sortOrder: sortOrder as 'asc' | 'desc',
     });
 
     res.json({

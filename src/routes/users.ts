@@ -53,25 +53,39 @@ const getUsersValidation = [
 /**
  * @route GET /api/v1/users
  * @desc Get all users with pagination and filters
- * @access Admin, Owner
+ * @access Admin, Owner, Manager
  */
 router.get('/', getUsersValidation, validateRequest, async (req: Request, res: Response) => {
   try {
     const { user } = req;
     
     // Check if user has permission to view users
-    if (!['admin', 'owner'].includes(user.role)) {
+    if (!['admin', 'owner', 'manager'].includes(user.role)) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied. Admin or Owner role required.',
+        message: 'Access denied. Admin, Owner, or Manager role required.',
       });
     }
 
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const search = req.query.search as string;
-    const role = req.query.role as string;
+    let role = req.query.role as string;
     const store_id = req.query.store_id as string;
+
+    // Managers can only see managers and cashiers
+    if (user.role === 'manager') {
+      if (role && !['manager', 'cashier'].includes(role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. Managers can only view managers and cashiers.',
+        });
+      }
+      // If no role specified, default to manager and cashier roles
+      if (!role) {
+        role = 'manager,cashier';
+      }
+    }
 
     const result = await UserService.getUsers(page, limit, search, role, store_id);
 
@@ -133,17 +147,25 @@ router.get('/:id', userParamValidation, validateRequest, async (req: Request, re
 /**
  * @route POST /api/v1/users
  * @desc Create a new user
- * @access Admin, Owner
+ * @access Admin, Owner, Manager
  */
 router.post('/', createUserValidation, validateRequest, async (req: Request, res: Response) => {
   try {
     const { user } = req;
     
     // Check if user has permission to create users
-    if (!['admin', 'owner'].includes(user.role)) {
+    if (!['admin', 'owner', 'manager'].includes(user.role)) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied. Admin or Owner role required.',
+        message: 'Access denied. Admin, Owner, or Manager role required.',
+      });
+    }
+
+    // Managers can only create cashiers
+    if (user.role === 'manager' && req.body.role !== 'cashier') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Managers can only create cashiers.',
       });
     }
 

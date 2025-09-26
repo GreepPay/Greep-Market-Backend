@@ -11,7 +11,7 @@ export interface CreateTransactionData {
     unit_price: number;
     discount_amount?: number;
   }>;
-  payment_method: 'cash' | 'card' | 'transfer' | 'pos';
+  payment_method: 'cash' | 'card' | 'transfer' | 'crypto';
   notes?: string;
   cashier_id: string;
 }
@@ -118,10 +118,17 @@ export class TransactionService {
   static async getTransactions(
     storeId?: string,
     status?: string,
-    paymentMethod?: string
+    paymentMethod?: string,
+    startDate?: string,
+    endDate?: string,
+    page: number = 1,
+    limit: number = 20
   ): Promise<{
     transactions: TransactionResponse[];
     total: number;
+    page: number;
+    limit: number;
+    pages: number;
   }> {
     try {
       const query: any = {};
@@ -138,15 +145,35 @@ export class TransactionService {
         query.payment_method = paymentMethod;
       }
 
+      // Add date filtering
+      if (startDate || endDate) {
+        query.created_at = {};
+        if (startDate) {
+          query.created_at.$gte = new Date(startDate);
+        }
+        if (endDate) {
+          query.created_at.$lte = new Date(endDate);
+        }
+      }
+
+      const skip = (page - 1) * limit;
+
       const [transactions, total] = await Promise.all([
         Transaction.find(query)
-          .sort({ created_at: -1 }),
+          .sort({ created_at: -1 })
+          .skip(skip)
+          .limit(limit),
         Transaction.countDocuments(query),
       ]);
+
+      const pages = Math.ceil(total / limit);
 
       return {
         transactions: transactions.map(t => this.formatTransactionResponse(t)),
         total,
+        page,
+        limit,
+        pages
       };
     } catch (error) {
       logger.error('Error getting transactions:', error);

@@ -33,6 +33,7 @@ router.get('/logs', asyncHandler(async (req: Request, res: Response) => {
     action,
     start_date,
     end_date,
+    user_role,
   } = req.query;
 
   const options = {
@@ -44,7 +45,23 @@ router.get('/logs', asyncHandler(async (req: Request, res: Response) => {
     store_id: user.store_id,
     start_date: start_date ? new Date(start_date as string) : undefined,
     end_date: end_date ? new Date(end_date as string) : undefined,
+    user_role: user_role as string,
   };
+
+  // Apply role-based filtering for managers
+  if (user.role === 'manager') {
+    // Managers can only see logs for managers and cashiers
+    if (user_role && typeof user_role === 'string' && !['manager', 'cashier'].includes(user_role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Managers can only view logs for managers and cashiers.',
+      });
+    }
+    // If no role specified, default to manager and cashier roles
+    if (!user_role) {
+      options.user_role = 'manager,cashier';
+    }
+  }
 
   const result = await AuditService.getAuditLogs(options);
 

@@ -20,13 +20,28 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
     const storeId = req.query.store_id as string;
     const status = req.query.status as string;
     const paymentMethod = req.query.payment_method as string;
+    const startDate = req.query.start_date as string;
+    const endDate = req.query.end_date as string;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
 
-    const result = await TransactionService.getTransactions(storeId, status, paymentMethod);
+    const result = await TransactionService.getTransactions(
+      storeId, 
+      status, 
+      paymentMethod, 
+      startDate, 
+      endDate, 
+      page, 
+      limit
+    );
     
     res.json({
       success: true,
       data: result.transactions,
-      total: result.total
+      total: result.total,
+      page: result.page || page,
+      limit: result.limit || limit,
+      pages: result.pages || Math.ceil(result.total / limit)
     });
   } catch (error) {
     logger.error('Error getting transactions:', error);

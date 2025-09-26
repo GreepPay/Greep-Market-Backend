@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
 import { authService } from '../services/authService';
+import { UserService } from '../services/userService';
 import { AuditService } from '../services/auditService';
+import { User } from '../models/User';
 import { authenticate } from '../middleware/auth';
 import { asyncHandler, validationError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
@@ -270,6 +272,83 @@ router.get('/me', authenticate, asyncHandler(async (req, res) => {
       },
     },
   });
+}));
+
+/**
+ * @route   PUT /api/v1/auth/profile
+ * @desc    Update current user profile
+ * @access  Private
+ */
+router.put('/profile', [
+  body('email').optional().isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('first_name').optional().notEmpty().trim().withMessage('First name cannot be empty'),
+  body('last_name').optional().notEmpty().trim().withMessage('Last name cannot be empty'),
+  body('phone').optional().isMobilePhone('any').withMessage('Valid phone number is required'),
+], authenticate, asyncHandler(async (req, res) => {
+  // Check validation errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    throw validationError(errors.array().map(err => err.msg).join(', '));
+  }
+
+  const { email, first_name, last_name, phone } = req.body;
+  const userId = req.user!.id;
+
+  try {
+    // Get current user data
+    const currentUser = await authService.getUserById(userId);
+    if (!currentUser) {
+      throw validationError('User not found');
+    }
+
+    // Check if email is being updated and if it's already taken
+    if (email && email !== currentUser.email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        throw validationError('Email already exists');
+      }
+    }
+
+    // Update user profile (only allow safe fields)
+    const updateData: any = {};
+    if (email) updateData.email = email;
+    if (first_name) updateData.first_name = first_name;
+    if (last_name) updateData.last_name = last_name;
+    if (phone) updateData.phone = phone;
+
+    const updatedUser = await UserService.updateUser(userId, updateData);
+
+    // Log the profile update
+    await AuditService.logUpdate(
+      req,
+      'USER_PROFILE',
+      userId,
+      currentUser.email,
+      currentUser,
+      updatedUser
+    );
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: updatedUser,
+    });
+  } catch (error) {
+    logger.error('Error updating profile:', error);
+    
+    if (error instanceof Error && error.message.includes('already exists')) {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update profile',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
 }));
 
 /**
