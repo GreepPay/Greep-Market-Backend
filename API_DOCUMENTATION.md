@@ -2,9 +2,9 @@
 
 ## Overview
 
-The Market Management System provides a comprehensive REST API for managing retail operations including products, inventory, sales transactions, customers, and analytics.
+The Market Management System provides a comprehensive REST API for managing retail operations including products, inventory, sales transactions, customers, expenses, analytics, and user management.
 
-**Base URL**: `http://localhost:3000/api/v1`
+**Base URL**: `http://localhost:3001/api/v1`
 
 **Authentication**: JWT Bearer Token
 
@@ -25,7 +25,27 @@ Content-Type: application/json
   "first_name": "John",
   "last_name": "Doe",
   "phone": "+905551234567",
-  "store_id": "uuid-here"
+  "store_id": "default-store"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "User registered successfully",
+  "data": {
+    "id": "user_id",
+    "email": "user@example.com",
+    "role": "cashier",
+    "first_name": "John",
+    "last_name": "Doe",
+    "phone": "+905551234567",
+    "store_id": "default-store",
+    "is_active": true,
+    "created_at": "2024-01-01T00:00:00.000Z"
+  }
 }
 ```
 
@@ -38,6 +58,27 @@ Content-Type: application/json
 {
   "email": "user@example.com",
   "password": "SecurePassword123!"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "user": {
+      "id": "user_id",
+      "email": "user@example.com",
+      "role": "cashier",
+      "first_name": "John",
+      "last_name": "Doe",
+      "store_id": "default-store"
+    },
+    "accessToken": "jwt_access_token",
+    "refreshToken": "jwt_refresh_token"
+  }
 }
 ```
 
@@ -59,13 +100,136 @@ GET /api/v1/auth/me
 Authorization: Bearer your-access-token
 ```
 
-## Products
-
-### Get Products (with search and filtering)
+### Update Profile (Self)
 
 ```http
-GET /api/v1/products?store_id=uuid&search=product&category_id=uuid&min_price=10&max_price=100&page=1&limit=20
+PUT /api/v1/auth/profile
 Authorization: Bearer your-access-token
+Content-Type: application/json
+
+{
+  "email": "newemail@example.com",
+  "first_name": "John",
+  "last_name": "Doe",
+  "phone": "+905551234567"
+}
+```
+
+## Users
+
+### Get Users (Admin/Owner/Manager only)
+
+```http
+GET /api/v1/users?page=1&limit=20&search=john&role=cashier&store_id=default-store
+Authorization: Bearer your-access-token
+```
+
+### Get User by ID
+
+```http
+GET /api/v1/users/{id}
+Authorization: Bearer your-access-token
+```
+
+### Create User (Admin/Owner/Manager only)
+
+```http
+POST /api/v1/users
+Authorization: Bearer your-access-token
+Content-Type: application/json
+
+{
+  "email": "newuser@example.com",
+  "password": "SecurePassword123!",
+  "role": "cashier",
+  "first_name": "Jane",
+  "last_name": "Smith",
+  "phone": "+905559876543",
+  "store_id": "default-store"
+}
+```
+
+### Update User (Admin/Owner only)
+
+```http
+PUT /api/v1/users/{id}
+Authorization: Bearer your-access-token
+Content-Type: application/json
+
+{
+  "email": "updated@example.com",
+  "first_name": "Jane",
+  "last_name": "Smith",
+  "phone": "+905559876543",
+  "role": "manager"
+}
+```
+
+### Update User Password
+
+```http
+PUT /api/v1/users/{id}/password
+Authorization: Bearer your-access-token
+Content-Type: application/json
+
+{
+  "password": "NewSecurePassword123!"
+}
+```
+
+### Delete User (Admin/Owner only)
+
+```http
+DELETE /api/v1/users/{id}
+Authorization: Bearer your-access-token
+```
+
+### Toggle User Status (Admin/Owner only)
+
+```http
+PATCH /api/v1/users/{id}/toggle-status
+Authorization: Bearer your-access-token
+```
+
+## Products
+
+### Get Products
+
+```http
+GET /api/v1/products?store_id=default-store&category=food&search=bread&is_active=true&is_featured=false&sortBy=name&sortOrder=asc
+Authorization: Bearer your-access-token
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Products retrieved successfully",
+  "data": {
+    "products": [
+      {
+        "_id": "product_id",
+        "name": "Product Name",
+        "description": "Product description",
+        "price": 75.0,
+        "category": "food",
+        "sku": "SKU123",
+        "barcode": "1234567890123",
+        "stock_quantity": 100,
+        "store_id": "default-store",
+        "created_by": "user_id",
+        "tags": ["tag1", "tag2"],
+        "images": ["image1.jpg", "image2.jpg"],
+        "is_active": true,
+        "is_featured": false,
+        "created_at": "2024-01-01T00:00:00.000Z",
+        "updated_at": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "total": 1
+  }
+}
 ```
 
 ### Get Product by ID
@@ -87,23 +251,20 @@ Authorization: Bearer your-access-token
 ```http
 POST /api/v1/products
 Authorization: Bearer your-access-token
-Content-Type: application/json
+Content-Type: multipart/form-data
 
 {
-  "store_id": "uuid",
   "name": "Product Name",
   "description": "Product description",
+  "price": 75.00,
+  "category": "food",
   "sku": "SKU123",
   "barcode": "1234567890123",
-  "category_id": "uuid",
-  "cost_price": 50.00,
-  "selling_price": 75.00,
-  "tax_rate": 18.00,
-  "unit_type": "piece",
-  "weight": 0.5,
-  "is_trackable": true,
-  "reorder_level": 10,
-  "reorder_quantity": 50
+  "stock_quantity": 100,
+  "store_id": "default-store",
+  "created_by": "user_id",
+  "tags": "tag1,tag2",
+  "images": [file1, file2]
 }
 ```
 
@@ -116,132 +277,36 @@ Content-Type: application/json
 
 {
   "name": "Updated Product Name",
-  "selling_price": 80.00
+  "price": 80.00,
+  "description": "Updated description"
 }
 ```
 
-### Update Product Pricing
+### Delete Product
 
 ```http
-PUT /api/v1/products/{id}/pricing
+DELETE /api/v1/products/{id}
 Authorization: Bearer your-access-token
-Content-Type: application/json
+```
+
+### Export Products
+
+```http
+GET /api/v1/products/export?store_id=default-store
+Authorization: Bearer your-access-token
+```
+
+### Import Products
+
+```http
+POST /api/v1/products/import
+Authorization: Bearer your-access-token
+Content-Type: multipart/form-data
 
 {
-  "cost_price": 55.00,
-  "selling_price": 85.00,
-  "tax_rate": 20.00
+  "file": [json_file],
+  "store_id": "default-store"
 }
-```
-
-### Get Product Profit Margin
-
-```http
-GET /api/v1/products/{id}/profit-margin
-Authorization: Bearer your-access-token
-```
-
-## Inventory
-
-### Get All Inventory Items
-
-```http
-GET /api/v1/inventory?store_id=uuid&page=1&limit=50
-Authorization: Bearer your-access-token
-```
-
-### Get Product Inventory
-
-```http
-GET /api/v1/inventory/{productId}?store_id=uuid
-Authorization: Bearer your-access-token
-```
-
-### Adjust Inventory
-
-```http
-POST /api/v1/inventory/{productId}/adjust
-Authorization: Bearer your-access-token
-Content-Type: application/json
-
-{
-  "store_id": "uuid",
-  "movement_type": "in",
-  "quantity": 100,
-  "reason": "Stock received",
-  "cost_per_unit": 50.00,
-  "notes": "Purchase order #123"
-}
-```
-
-### Reserve Stock
-
-```http
-POST /api/v1/inventory/{productId}/reserve
-Authorization: Bearer your-access-token
-Content-Type: application/json
-
-{
-  "quantity": 5,
-  "store_id": "uuid"
-}
-```
-
-### Release Reserved Stock
-
-```http
-POST /api/v1/inventory/{productId}/release
-Authorization: Bearer your-access-token
-Content-Type: application/json
-
-{
-  "quantity": 5,
-  "store_id": "uuid"
-}
-```
-
-### Get Low Stock Items
-
-```http
-GET /api/v1/inventory/low-stock?store_id=uuid
-Authorization: Bearer your-access-token
-```
-
-### Perform Stock Count
-
-```http
-POST /api/v1/inventory/stock-count
-Authorization: Bearer your-access-token
-Content-Type: application/json
-
-{
-  "store_id": "uuid",
-  "product_id": "uuid",
-  "counted_quantity": 95,
-  "notes": "Physical count completed"
-}
-```
-
-### Set Reorder Levels
-
-```http
-PUT /api/v1/inventory/{productId}/reorder-levels
-Authorization: Bearer your-access-token
-Content-Type: application/json
-
-{
-  "store_id": "uuid",
-  "min_stock_level": 10,
-  "max_stock_level": 200,
-  "reorder_quantity": 50
-}
-```
-
-### Get Stock Movement History
-
-```http
-GET /api/v1/inventory/{productId}/movements?start_date=2024-01-01&end_date=2024-01-31&store_id=uuid
-Authorization: Bearer your-access-token
 ```
 
 ## Transactions
@@ -249,8 +314,50 @@ Authorization: Bearer your-access-token
 ### Get Transactions
 
 ```http
-GET /api/v1/transactions?store_id=uuid&start_date=2024-01-01&end_date=2024-01-31&status=completed&page=1&limit=50
+GET /api/v1/transactions?store_id=default-store&start_date=2024-01-01&end_date=2024-01-31&status=completed&payment_method=cash&page=1&limit=20
 Authorization: Bearer your-access-token
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Transactions retrieved successfully",
+  "data": {
+    "transactions": [
+      {
+        "_id": "transaction_id",
+        "store_id": "default-store",
+        "customer_id": "customer_id",
+        "items": [
+          {
+            "product_id": "product_id",
+            "product_name": "Product Name",
+            "quantity": 2,
+            "unit_price": 75.0,
+            "total_price": 150.0
+          }
+        ],
+        "subtotal": 150.0,
+        "discount_amount": 10.0,
+        "tax_amount": 25.2,
+        "total_amount": 165.2,
+        "payment_method": "cash",
+        "payment_status": "completed",
+        "status": "completed",
+        "notes": "Transaction notes",
+        "created_by": "user_id",
+        "created_at": "2024-01-01T00:00:00.000Z",
+        "updated_at": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "page": 1,
+    "limit": 20,
+    "pages": 1,
+    "total": 1
+  }
+}
 ```
 
 ### Get Transaction by ID
@@ -268,86 +375,294 @@ Authorization: Bearer your-access-token
 Content-Type: application/json
 
 {
-  "store_id": "uuid",
-  "customer_id": "uuid",
+  "store_id": "default-store",
+  "customer_id": "customer_id",
   "items": [
     {
-      "product_id": "uuid",
+      "product_id": "product_id",
       "quantity": 2,
       "unit_price": 75.00
     }
   ],
   "discount_amount": 10.00,
   "payment_method": "cash",
-  "notes": "Customer discount applied"
+  "notes": "Transaction notes"
 }
 ```
 
-### Process Payment
+### Update Transaction (Pending only)
 
 ```http
-POST /api/v1/transactions/{id}/payment
-Authorization: Bearer your-access-token
-Content-Type: application/json
-
-{
-  "amount": 140.00,
-  "payment_method": "cash",
-  "change_amount": 10.00
-}
-```
-
-### Complete Transaction
-
-```http
-POST /api/v1/transactions/{id}/complete
-Authorization: Bearer your-access-token
-```
-
-### Void Transaction
-
-```http
-POST /api/v1/transactions/{id}/void
-Authorization: Bearer your-access-token
-Content-Type: application/json
-
-{
-  "reason": "Customer cancelled order"
-}
-```
-
-### Process Return
-
-```http
-POST /api/v1/transactions/{id}/return
+PUT /api/v1/transactions/{id}
 Authorization: Bearer your-access-token
 Content-Type: application/json
 
 {
   "items": [
     {
-      "transaction_item_id": "uuid",
-      "quantity": 1,
-      "reason": "Defective product"
+      "product_id": "product_id",
+      "quantity": 3,
+      "unit_price": 75.00
     }
   ],
-  "reason": "Product defect",
-  "refund_method": "cash"
+  "discount_amount": 15.00,
+  "payment_method": "card",
+  "notes": "Updated transaction notes"
 }
 ```
 
-### Issue Refund
+### Delete Transaction (Pending only)
 
 ```http
-POST /api/v1/transactions/{id}/refund
+DELETE /api/v1/transactions/{id}
+Authorization: Bearer your-access-token
+```
+
+## Expenses
+
+### Get Expenses
+
+```http
+GET /api/v1/expenses?page=1&limit=20&category=food&payment_method=cash&start_date=2024-01-01&end_date=2024-01-31&search=supplies
+Authorization: Bearer your-access-token
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Expenses retrieved successfully",
+  "data": {
+    "expenses": [
+      {
+        "_id": "expense_id",
+        "store_id": "default-store",
+        "category": "food",
+        "description": "Grocery supplies",
+        "amount": 500.0,
+        "payment_method": "cash",
+        "receipt_number": "RCP001",
+        "notes": "Monthly grocery purchase",
+        "created_by": "user_id",
+        "created_at": "2024-01-01T00:00:00.000Z",
+        "updated_at": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "page": 1,
+    "limit": 20,
+    "pages": 1,
+    "total": 1
+  }
+}
+```
+
+### Get Expense by ID
+
+```http
+GET /api/v1/expenses/{id}
+Authorization: Bearer your-access-token
+```
+
+### Create Expense
+
+```http
+POST /api/v1/expenses
 Authorization: Bearer your-access-token
 Content-Type: application/json
 
 {
-  "amount": 75.00,
-  "reason": "Customer complaint",
-  "refund_method": "cash"
+  "store_id": "default-store",
+  "category": "food",
+  "description": "Grocery supplies",
+  "amount": 500.00,
+  "payment_method": "cash",
+  "receipt_number": "RCP001",
+  "notes": "Monthly grocery purchase"
 }
+```
+
+### Update Expense
+
+```http
+PUT /api/v1/expenses/{id}
+Authorization: Bearer your-access-token
+Content-Type: application/json
+
+{
+  "category": "supplies",
+  "description": "Updated description",
+  "amount": 600.00
+}
+```
+
+### Delete Expense
+
+```http
+DELETE /api/v1/expenses/{id}
+Authorization: Bearer your-access-token
+```
+
+### Get Expense Statistics
+
+```http
+GET /api/v1/expenses/stats?start_date=2024-01-01&end_date=2024-01-31&store_id=default-store
+Authorization: Bearer your-access-token
+```
+
+## Analytics
+
+### Get Dashboard Analytics
+
+```http
+GET /api/v1/analytics/dashboard?dateRange=today&startDate=2024-01-01&endDate=2024-01-31&paymentMethod=cash&orderSource=pos&status=completed
+Authorization: Bearer your-access-token
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "totalSales": 15000.0,
+    "totalTransactions": 150,
+    "averageTransactionValue": 100.0,
+    "growthRate": 15.5,
+    "totalProducts": 500,
+    "lowStockItems": 25,
+    "todaySales": 500.0,
+    "monthlySales": 15000.0,
+    "totalExpenses": 5000.0,
+    "monthlyExpenses": 5000.0,
+    "netProfit": 10000.0,
+    "topProducts": [
+      {
+        "productName": "Product Name",
+        "quantitySold": 50,
+        "revenue": 3750.0,
+        "productId": "product_id"
+      }
+    ],
+    "recentTransactions": [
+      {
+        "id": "transaction_id",
+        "totalAmount": 150.0,
+        "paymentMethod": "cash",
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "salesByMonth": [
+      {
+        "sales": 5000.0,
+        "transactions": 50,
+        "month": "2024-01"
+      }
+    ]
+  }
+}
+```
+
+### Get Sales Analytics
+
+```http
+GET /api/v1/analytics/sales?start_date=2024-01-01&end_date=2024-01-31&store_id=default-store
+Authorization: Bearer your-access-token
+```
+
+### Get Product Performance
+
+```http
+GET /api/v1/analytics/products?period=week&store_id=default-store
+Authorization: Bearer your-access-token
+```
+
+### Get Inventory Analytics
+
+```http
+GET /api/v1/analytics/inventory?store_id=default-store
+Authorization: Bearer your-access-token
+```
+
+## Goals
+
+### Get Goals
+
+```http
+GET /api/v1/goals?goal_type=daily&is_active=true&store_id=default-store
+Authorization: Bearer your-access-token
+```
+
+### Create Goal
+
+```http
+POST /api/v1/goals
+Authorization: Bearer your-access-token
+Content-Type: application/json
+
+{
+  "store_id": "default-store",
+  "goal_type": "daily",
+  "target_amount": 5000.00,
+  "period_start": "2024-01-01",
+  "period_end": "2024-01-31",
+  "description": "Daily sales target"
+}
+```
+
+### Update Goal
+
+```http
+PUT /api/v1/goals/{id}
+Authorization: Bearer your-access-token
+Content-Type: application/json
+
+{
+  "target_amount": 6000.00,
+  "description": "Updated daily sales target"
+}
+```
+
+### Delete Goal
+
+```http
+DELETE /api/v1/goals/{id}
+Authorization: Bearer your-access-token
+```
+
+## Stores
+
+### Get Store Settings
+
+```http
+GET /api/v1/stores/settings?store_id=default-store
+Authorization: Bearer your-access-token
+```
+
+### Update Store Settings
+
+```http
+PUT /api/v1/stores/settings
+Authorization: Bearer your-access-token
+Content-Type: application/json
+
+{
+  "store_id": "default-store",
+  "name": "Updated Store Name",
+  "address": "New Address",
+  "phone": "+905551234567",
+  "email": "store@example.com",
+  "currency": "TRY",
+  "tax_rate": 18.00,
+  "timezone": "Europe/Istanbul"
+}
+```
+
+### Get Store by ID
+
+```http
+GET /api/v1/stores/{id}
+Authorization: Bearer your-access-token
 ```
 
 ## Customers
@@ -355,7 +670,7 @@ Content-Type: application/json
 ### Get Customers
 
 ```http
-GET /api/v1/customers?store_id=uuid&page=1&limit=50
+GET /api/v1/customers?store_id=default-store&page=1&limit=20&search=john
 Authorization: Bearer your-access-token
 ```
 
@@ -374,7 +689,7 @@ Authorization: Bearer your-access-token
 Content-Type: application/json
 
 {
-  "store_id": "uuid",
+  "store_id": "default-store",
   "first_name": "Jane",
   "last_name": "Smith",
   "email": "jane@example.com",
@@ -397,40 +712,135 @@ Content-Type: application/json
 }
 ```
 
-## Analytics
-
-### Get Dashboard Analytics
+### Delete Customer (Admin/Owner/Manager only)
 
 ```http
-GET /api/v1/analytics/dashboard?store_id=uuid&period=month
+DELETE /api/v1/customers/{id}
 Authorization: Bearer your-access-token
 ```
 
-### Get Sales Analytics
+## Inventory
+
+### Get Inventory Items
 
 ```http
-GET /api/v1/analytics/sales?store_id=uuid&start_date=2024-01-01&end_date=2024-01-31
+GET /api/v1/inventory?store_id=default-store&page=1&limit=50&product_id=product_id
 Authorization: Bearer your-access-token
 ```
 
-### Get Product Performance
+### Get Product Inventory
 
 ```http
-GET /api/v1/analytics/products?store_id=uuid&period=week
+GET /api/v1/inventory/{productId}?store_id=default-store
 Authorization: Bearer your-access-token
 ```
 
-### Get Inventory Analytics
+### Adjust Inventory
 
 ```http
-GET /api/v1/analytics/inventory?store_id=uuid
+POST /api/v1/inventory/{productId}/adjust
+Authorization: Bearer your-access-token
+Content-Type: application/json
+
+{
+  "store_id": "default-store",
+  "movement_type": "in",
+  "quantity": 100,
+  "reason": "Stock received",
+  "cost_per_unit": 50.00,
+  "notes": "Purchase order #123"
+}
+```
+
+### Get Low Stock Items
+
+```http
+GET /api/v1/inventory/low-stock?store_id=default-store
 Authorization: Bearer your-access-token
 ```
 
-### Get Customer Analytics
+### Get Stock Movement History
 
 ```http
-GET /api/v1/analytics/customers?store_id=uuid&period=month
+GET /api/v1/inventory/{productId}/movements?start_date=2024-01-01&end_date=2024-01-31&store_id=default-store
+Authorization: Bearer your-access-token
+```
+
+## Riders
+
+### Get Riders
+
+```http
+GET /api/v1/riders?store_id=default-store&page=1&limit=20&search=john
+Authorization: Bearer your-access-token
+```
+
+### Get Rider by ID
+
+```http
+GET /api/v1/riders/{id}
+Authorization: Bearer your-access-token
+```
+
+### Create Rider
+
+```http
+POST /api/v1/riders
+Authorization: Bearer your-access-token
+Content-Type: application/json
+
+{
+  "store_id": "default-store",
+  "name": "John Rider",
+  "phone": "+905551234567",
+  "email": "rider@example.com",
+  "vehicle_type": "bike",
+  "license_number": "LIC123",
+  "is_active": true
+}
+```
+
+### Update Rider
+
+```http
+PUT /api/v1/riders/{id}
+Authorization: Bearer your-access-token
+Content-Type: application/json
+
+{
+  "name": "Updated Rider Name",
+  "phone": "+905559876543",
+  "vehicle_type": "motorcycle"
+}
+```
+
+### Delete Rider
+
+```http
+DELETE /api/v1/riders/{id}
+Authorization: Bearer your-access-token
+```
+
+### Get Rider Cash History
+
+```http
+GET /api/v1/riders/{id}/cash-history?start_date=2024-01-01&end_date=2024-01-31
+Authorization: Bearer your-access-token
+```
+
+## Audit Logs
+
+### Get Audit Logs (Admin/Owner/Manager only)
+
+```http
+GET /api/v1/audit/logs?page=1&limit=20&entity_type=USER&action=CREATE&start_date=2024-01-01&end_date=2024-01-31&user_id=user_id
+Authorization: Bearer your-access-token
+```
+
+### Get Audit Analytics (Admin/Owner/Manager only)
+
+```http
+GET /api/v1/audit/analytics?start_date=2024-01-01&end_date=2024-01-31&store_id=default-store
 Authorization: Bearer your-access-token
 ```
 
@@ -476,10 +886,16 @@ All error responses follow this format:
 ```json
 {
   "success": false,
-  "error": {
-    "message": "Error description",
-    "code": "ERROR_CODE"
-  },
+  "message": "Error description",
+  "errors": [
+    {
+      "type": "field",
+      "msg": "Validation error message",
+      "path": "field_name",
+      "location": "body"
+    }
+  ],
+  "code": "ERROR_CODE",
   "timestamp": "2024-01-01T00:00:00.000Z",
   "path": "/api/v1/endpoint"
 }
@@ -512,32 +928,115 @@ All error responses follow this format:
 
 - Full system access
 - All permissions
+- Can manage all users, stores, and settings
 
 ### Owner
 
 - Store management
-- User management
+- User management (except admins)
 - Reports and analytics
 - Product and inventory management
 - Transaction management
 - Customer management
 - Expense management
+- Settings management
 
 ### Manager
 
 - Product and inventory management
-- Transaction viewing
+- Transaction viewing and management
 - Reports and analytics
 - Customer management
-- Expense viewing
+- Expense viewing and management
+- User management (cashiers only)
 
 ### Cashier
 
-- POS operations
-- Transaction creation
-- Inventory viewing
 - Product viewing
+- Transaction creation and management
 - Customer viewing
+- Expense viewing
+- Reports and analytics viewing
+- Settings (profile only)
+
+## Authentication Flow
+
+1. **Register/Login**: Get access token and refresh token
+2. **API Requests**: Include `Authorization: Bearer {access_token}` header
+3. **Token Refresh**: Use refresh token to get new access token when expired
+4. **Logout**: Invalidate tokens
+
+## Data Models
+
+### User
+
+```json
+{
+  "id": "string",
+  "email": "string",
+  "role": "admin|owner|manager|cashier",
+  "first_name": "string",
+  "last_name": "string",
+  "phone": "string",
+  "store_id": "string",
+  "is_active": "boolean",
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
+
+### Product
+
+```json
+{
+  "_id": "string",
+  "name": "string",
+  "description": "string",
+  "price": "number",
+  "category": "string",
+  "sku": "string",
+  "barcode": "string",
+  "stock_quantity": "number",
+  "store_id": "string",
+  "created_by": "string",
+  "tags": ["string"],
+  "images": ["string"],
+  "is_active": "boolean",
+  "is_featured": "boolean",
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
+
+### Transaction
+
+```json
+{
+  "_id": "string",
+  "store_id": "string",
+  "customer_id": "string",
+  "items": [
+    {
+      "product_id": "string",
+      "product_name": "string",
+      "quantity": "number",
+      "unit_price": "number",
+      "total_price": "number"
+    }
+  ],
+  "subtotal": "number",
+  "discount_amount": "number",
+  "tax_amount": "number",
+  "total_amount": "number",
+  "payment_method": "cash|card|transfer|other",
+  "payment_status": "pending|completed|failed",
+  "status": "pending|completed|cancelled",
+  "notes": "string",
+  "created_by": "string",
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
 
 ## Webhooks (Future Implementation)
 
@@ -547,6 +1046,8 @@ The system will support webhooks for real-time notifications:
 - `inventory.low_stock`
 - `product.created`
 - `customer.registered`
+- `expense.created`
+- `goal.achieved`
 
 ## SDKs and Libraries
 
@@ -569,3 +1070,21 @@ For API support and questions:
 - Documentation: `/api/docs`
 - Health Check: `/health`
 - Monitoring: `/api/v1/monitoring/health`
+- Base URL: `http://localhost:3001/api/v1`
+
+## Changelog
+
+### Version 1.0.0
+
+- Initial API release
+- Authentication and user management
+- Product and inventory management
+- Transaction processing
+- Expense tracking
+- Analytics and reporting
+- Goal setting and tracking
+- Customer management
+- Rider management
+- Audit logging
+- Store settings
+- Monitoring and health checks
