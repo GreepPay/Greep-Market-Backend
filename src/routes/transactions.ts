@@ -96,7 +96,6 @@ router.post('/', asyncHandler(async (req, res) => {
       total_amount: transaction.total_amount,
       subtotal: transaction.subtotal,
       discount_amount: transaction.discount_amount,
-      tax_amount: transaction.tax_amount,
       payment_method: transaction.payment_method,
       payment_status: transaction.payment_status,
       status: transaction.status,
@@ -307,6 +306,17 @@ router.put('/:id', asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const updateData = req.body;
 
+    // Validate payment method if provided
+    if (updateData.payment_method) {
+      const validPaymentMethods = ['cash', 'pos_isbank_transfer', 'naira_transfer', 'crypto_payment'];
+      if (!validPaymentMethods.includes(updateData.payment_method)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid payment method. Must be one of: ${validPaymentMethods.join(', ')}`
+        });
+      }
+    }
+
     // Validate required fields if items are being updated
     if (updateData.items) {
       if (!Array.isArray(updateData.items) || updateData.items.length === 0) {
@@ -357,6 +367,8 @@ router.put('/:id', asyncHandler(async (req: Request, res: Response) => {
     });
   } catch (error) {
     logger.error('Error updating transaction:', error);
+    logger.error('Update data received:', req.body);
+    logger.error('Transaction ID:', req.params.id);
     
     if (error instanceof Error && error.message.includes('not found')) {
       return res.status(404).json({
@@ -366,6 +378,13 @@ router.put('/:id', asyncHandler(async (req: Request, res: Response) => {
     }
     
     if (error instanceof Error && error.message.includes('Only pending transactions')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+    
+    if (error instanceof Error && error.message.includes('Invalid payment method')) {
       return res.status(400).json({
         success: false,
         message: error.message
