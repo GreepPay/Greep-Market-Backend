@@ -3,6 +3,7 @@ import { body, param, validationResult } from 'express-validator';
 import { authenticate } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { RiderService } from '../services/riderService';
+import { AuditService } from '../services/auditService';
 import { logger } from '../utils/logger';
 
 const router = Router();
@@ -120,6 +121,14 @@ router.post('/', [
 
     const rider = await RiderService.createRider(riderData);
     
+    // Log the rider creation
+    await AuditService.logCreate(
+      req,
+      'USER', // Using USER as resource type since riders are users
+      rider._id,
+      rider.name
+    );
+    
     res.status(201).json({
       success: true,
       message: 'Rider created successfully',
@@ -190,6 +199,8 @@ router.put('/:id', [
       delete updateData[key as keyof typeof updateData]
     );
 
+    // Get the old rider data for audit logging
+    const oldRider = await RiderService.getRiderById(riderId);
     const rider = await RiderService.updateRider(riderId, updateData);
     
     if (!rider) {
@@ -198,6 +209,16 @@ router.put('/:id', [
         message: 'Rider not found',
       });
     }
+
+    // Log the rider update
+    await AuditService.logUpdate(
+      req,
+      'USER', // Using USER as resource type since riders are users
+      riderId,
+      rider.name,
+      oldRider,
+      rider
+    );
 
     res.json({
       success: true,
@@ -233,6 +254,9 @@ router.delete('/:id', [
     }
 
     const riderId = req.params.id;
+    
+    // Get the rider data before deletion for audit logging
+    const rider = await RiderService.getRiderById(riderId);
     const deleted = await RiderService.deleteRider(riderId);
     
     if (!deleted) {
@@ -241,6 +265,15 @@ router.delete('/:id', [
         message: 'Rider not found',
       });
     }
+
+    // Log the rider deletion
+    await AuditService.logDelete(
+      req,
+      'USER', // Using USER as resource type since riders are users
+      riderId,
+      rider?.name || 'Unknown Rider',
+      rider
+    );
 
     res.json({
       success: true,

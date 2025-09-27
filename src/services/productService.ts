@@ -329,11 +329,9 @@ export class ProductService {
   }
 
   /**
-   * Get products with pagination and filters
+   * Get products with filters
    */
   static async getProducts(options: {
-    page?: number;
-    limit?: number;
     category?: string;
     search?: string;
     is_active?: boolean;
@@ -344,13 +342,9 @@ export class ProductService {
   } = {}): Promise<{
     products: IProduct[];
     total: number;
-    page: number;
-    pages: number;
   }> {
     try {
       const {
-        page = 1,
-        limit = 10,
         category,
         search,
         is_active,
@@ -373,15 +367,10 @@ export class ProductService {
         query.$text = { $search: search };
       }
 
-      // Calculate skip
-      const skip = (page - 1) * limit;
-
-      // Execute query
+      // Execute query - get all products without pagination
       const [products, total] = await Promise.all([
         Product.find(query)
           .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
-          .skip(skip)
-          .limit(limit)
           .exec(),
         Product.countDocuments(query),
       ]);
@@ -389,8 +378,6 @@ export class ProductService {
       return {
         products,
         total,
-        page,
-        pages: Math.ceil(total / limit),
       };
     } catch (error) {
       logger.error('Get products error:', error);

@@ -75,63 +75,29 @@ router.post('/', uploadMultiple('images', 5), async (req: Request, res: Response
 });
 
 /**
- * Get all products with pagination and filters
+ * Get all products with filters
  * GET /api/v1/products
  */
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { 
       store_id, 
-      page, 
-      limit, 
-      offset,
-      p,
-      pageNumber,
       category, 
       search, 
       is_active, 
       is_featured, 
       sortBy, 
-      sortOrder 
+      sortOrder
     } = req.query;
-
-    // Handle multiple pagination parameter formats
-    let finalPage = 1;
-    let finalLimit = 20;
-    let finalOffset = 0;
-
-    // Parse page number from various parameter names
-    if (page) finalPage = parseInt(page as string) || 1;
-    else if (p) finalPage = parseInt(p as string) || 1;
-    else if (pageNumber) finalPage = parseInt(pageNumber as string) || 1;
-
-    // Parse limit
-    if (limit) finalLimit = parseInt(limit as string) || 20;
-
-    // Parse offset (if provided, calculate page from it)
-    if (offset) {
-      finalOffset = parseInt(offset as string) || 0;
-      finalPage = Math.floor(finalOffset / finalLimit) + 1;
-    }
-
-    // Ensure page is at least 1
-    finalPage = Math.max(1, finalPage);
-
-    logger.info('Products pagination params:', {
-      originalParams: { page, limit, offset, p, pageNumber },
-      finalParams: { page: finalPage, limit: finalLimit, offset: finalOffset }
-    });
 
     const result = await ProductService.getProducts({
       store_id: store_id as string,
-      page: finalPage,
-      limit: finalLimit,
       category: category as string,
       search: search as string,
       is_active: is_active ? is_active === 'true' : undefined,
       is_featured: is_featured ? is_featured === 'true' : undefined,
       sortBy: sortBy as string,
-      sortOrder: sortOrder as 'asc' | 'desc'
+      sortOrder: sortOrder as 'asc' | 'desc',
     });
 
     res.json({

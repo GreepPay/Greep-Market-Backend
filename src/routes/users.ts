@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { UserService } from '../services/userService';
+import { AuditService } from '../services/auditService';
 import { authenticate } from '../middleware/auth';
 import { validateRequest } from '../middleware/validation';
 import { body, param, query } from 'express-validator';
@@ -52,25 +53,39 @@ const getUsersValidation = [
 /**
  * @route GET /api/v1/users
  * @desc Get all users with pagination and filters
- * @access Admin, Owner
+ * @access Admin, Owner, Manager
  */
 router.get('/', getUsersValidation, validateRequest, async (req: Request, res: Response) => {
   try {
     const { user } = req;
     
     // Check if user has permission to view users
-    if (!['admin', 'owner'].includes(user.role)) {
+    if (!['admin', 'owner', 'manager'].includes(user.role)) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied. Admin or Owner role required.',
+        message: 'Access denied. Admin, Owner, or Manager role required.',
       });
     }
 
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const search = req.query.search as string;
-    const role = req.query.role as string;
+    let role = req.query.role as string;
     const store_id = req.query.store_id as string;
+
+    // Managers can only see managers and cashiers
+    if (user.role === 'manager') {
+      if (role && !['manager', 'cashier'].includes(role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. Managers can only view managers and cashiers.',
+        });
+      }
+      // If no role specified, default to manager and cashier roles
+      if (!role) {
+        role = 'manager,cashier';
+      }
+    }
 
     const result = await UserService.getUsers(page, limit, search, role, store_id);
 
@@ -132,17 +147,25 @@ router.get('/:id', userParamValidation, validateRequest, async (req: Request, re
 /**
  * @route POST /api/v1/users
  * @desc Create a new user
- * @access Admin, Owner
+ * @access Admin, Owner, Manager
  */
 router.post('/', createUserValidation, validateRequest, async (req: Request, res: Response) => {
   try {
     const { user } = req;
     
     // Check if user has permission to create users
-    if (!['admin', 'owner'].includes(user.role)) {
+    if (!['admin', 'owner', 'manager'].includes(user.role)) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied. Admin or Owner role required.',
+        message: 'Access denied. Admin, Owner, or Manager role required.',
+      });
+    }
+
+    // Managers can only create cashiers
+    if (user.role === 'manager' && req.body.role !== 'cashier') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Managers can only create cashiers.',
       });
     }
 
@@ -155,6 +178,14 @@ router.post('/', createUserValidation, validateRequest, async (req: Request, res
     }
 
     const userData = await UserService.createUser(req.body);
+
+    // Log the user creation
+    await AuditService.logCreate(
+      req,
+      'USER',
+      userData.id,
+      userData.email
+    );
 
     res.status(201).json({
       success: true,
@@ -224,6 +255,16 @@ router.put('/:id', updateUserValidation, validateRequest, async (req: Request, r
 
     const updatedUser = await UserService.updateUser(id, req.body);
 
+    // Log the user update
+    await AuditService.logUpdate(
+      req,
+      'USER',
+      id,
+      targetUser.email,
+      targetUser,
+      updatedUser
+    );
+
     res.json({
       success: true,
       message: 'User updated successfully',
@@ -259,7 +300,8 @@ router.put('/:id/password', updatePasswordValidation, validateRequest, async (re
     const { password } = req.body;
     
     // Check if user has permission to update passwords
-    if (!['admin', 'owner'].includes(user.role)) {
+    // Allow users to change their own passwords, or require admin/owner role for others
+    if (user.id !== id && !['admin', 'owner'].includes(user.role)) {
       return res.status(403).json({
         success: false,
         message: 'Access denied. Admin or Owner role required.',
@@ -276,7 +318,8 @@ router.put('/:id/password', updatePasswordValidation, validateRequest, async (re
     }
 
     // Check if current user can manage the target user
-    if (!UserService.canManageUser(user.id, id, user.role, targetUser.role)) {
+    // Allow users to change their own passwords
+    if (user.id !== id && !UserService.canManageUser(user.id, id, user.role, targetUser.role)) {
       return res.status(403).json({
         success: false,
         message: 'Access denied. Cannot manage this user.',
@@ -284,6 +327,16 @@ router.put('/:id/password', updatePasswordValidation, validateRequest, async (re
     }
 
     await UserService.updateUserPassword(id, password);
+
+    // Log the password update
+    await AuditService.logUpdate(
+      req,
+      'USER',
+      id,
+      targetUser.email,
+      { password_hash: '[HIDDEN]' },
+      { password_hash: '[UPDATED]' }
+    );
 
   res.json({
     success: true,
@@ -344,6 +397,15 @@ router.delete('/:id', userParamValidation, validateRequest, async (req: Request,
 
     await UserService.deleteUser(id);
 
+    // Log the user deletion
+    await AuditService.logDelete(
+      req,
+      'USER',
+      id,
+      targetUser.email,
+      targetUser
+    );
+
     res.json({
       success: true,
       message: 'User deleted successfully',
@@ -402,6 +464,16 @@ router.patch('/:id/toggle-status', userParamValidation, validateRequest, async (
     }
 
     const updatedUser = await UserService.toggleUserStatus(id);
+
+    // Log the user status update
+    await AuditService.logUpdate(
+      req,
+      'USER',
+      id,
+      targetUser.email,
+      { is_active: targetUser.is_active },
+      { is_active: updatedUser.is_active }
+    );
 
   res.json({
     success: true,

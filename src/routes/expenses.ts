@@ -3,6 +3,7 @@ import { body, param, query, validationResult } from 'express-validator';
 import { authenticate, authorize } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { ExpenseService } from '../services/expenseService';
+import { AuditService } from '../services/auditService';
 import { logger } from '../utils/logger';
 
 const router = Router();
@@ -231,6 +232,14 @@ router.post('/', [
 
     const expense = await ExpenseService.createExpense(expenseData);
     
+    // Log the expense creation
+    await AuditService.logCreate(
+      req,
+      'EXPENSE',
+      expense._id,
+      expense.product_name
+    );
+    
     res.status(201).json({
       success: true,
       data: expense,
@@ -275,7 +284,19 @@ router.put('/:id', [
       });
     }
 
+    // Get the old expense data for audit logging
+    const oldExpense = await ExpenseService.getExpenseById(req.params.id);
     const expense = await ExpenseService.updateExpense(req.params.id, req.body);
+    
+    // Log the expense update
+    await AuditService.logUpdate(
+      req,
+      'EXPENSE',
+      req.params.id,
+      expense.product_name,
+      oldExpense,
+      expense
+    );
     
     res.json({
       success: true,
@@ -311,7 +332,18 @@ router.delete('/:id', [
       });
     }
 
+    // Get the expense data before deletion for audit logging
+    const expense = await ExpenseService.getExpenseById(req.params.id);
     await ExpenseService.deleteExpense(req.params.id);
+    
+    // Log the expense deletion
+    await AuditService.logDelete(
+      req,
+      'EXPENSE',
+      req.params.id,
+      expense?.product_name || 'Unknown Expense',
+      expense
+    );
     
     res.json({
       success: true,
