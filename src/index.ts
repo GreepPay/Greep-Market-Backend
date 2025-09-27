@@ -27,6 +27,10 @@ import goalRoutes from './routes/goals';
 import auditRoutes from './routes/audit';
 import settingsRoutes from './routes/settings';
 import riderRoutes from './routes/riders';
+import publicCatalogRoutes from './routes/publicCatalog';
+import customerOrderRoutes from './routes/customerOrders';
+import autoCompleteRoutes from './routes/autoComplete';
+import { CronService } from './services/cronService';
 import { auditMiddleware, auditAuth } from './middleware/audit';
 // import monitoringRoutes from './routes/monitoring';
 
@@ -175,6 +179,9 @@ class App {
           audit: '/api/v1/audit',
           settings: '/api/v1/settings',
           riders: '/api/v1/riders',
+          public_catalog: '/api/v1/public',
+          customer_orders: '/api/v1/admin/customer-orders',
+          auto_complete: '/api/v1/auto-complete',
         },
       });
     });
@@ -197,6 +204,9 @@ class App {
     this.app.use(`${apiPrefix}/audit`, auditRoutes);
     this.app.use(`${apiPrefix}/settings`, settingsRoutes);
     this.app.use(`${apiPrefix}/riders`, riderRoutes);
+    this.app.use(`${apiPrefix}/public`, publicCatalogRoutes);
+    this.app.use(`${apiPrefix}/admin/customer-orders`, customerOrderRoutes);
+    this.app.use(`${apiPrefix}/auto-complete`, autoCompleteRoutes);
     // this.app.use(`${apiPrefix}/monitoring`, monitoringRoutes);
 
     // Root endpoint
@@ -241,6 +251,9 @@ class App {
         logger.info(`📚 API Documentation: http://localhost:${config.app.port}/api/docs`);
         logger.info(`🏥 Health Check: http://localhost:${config.app.port}/health`);
         logger.info(`🌍 Environment: ${config.app.env}`);
+        
+        // Start cron jobs
+        CronService.startAllJobs();
       });
     } catch (error) {
       logger.error('Failed to start server:', error);
@@ -250,6 +263,9 @@ class App {
 
   public async stop(): Promise<void> {
     try {
+      // Stop cron jobs
+      CronService.stopAllJobs();
+      
       await closeDatabaseConnections();
       // await closeRedisConnection();
       logger.info('✅ Server stopped gracefully');

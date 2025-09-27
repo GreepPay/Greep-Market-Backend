@@ -329,6 +329,34 @@ export class ProductService {
   }
 
   /**
+   * Get product by barcode
+   */
+  static async getProductByBarcode(barcode: string): Promise<IProduct | null> {
+    try {
+      return await Product.findOne({ barcode: barcode });
+    } catch (error) {
+      logger.error('Get product by barcode error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get available categories for a store
+   */
+  static async getCategories(storeId: string): Promise<string[]> {
+    try {
+      const categories = await Product.distinct('category', { 
+        store_id: storeId, 
+        is_active: true 
+      });
+      return categories.sort();
+    } catch (error) {
+      logger.error('Get categories error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get products with filters
    */
   static async getProducts(options: {
