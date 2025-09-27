@@ -25,7 +25,7 @@ router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
       dateRange = '30d',
       paymentMethod,
       orderSource,
-      status = 'completed',
+      status = 'all', // Changed from 'completed' to 'all' to include pending transactions by default
       startDate,
       endDate
     } = req.query;
@@ -173,7 +173,7 @@ router.get('/transactions', asyncHandler(async (req, res) => {
       dateRange = '30d',
       paymentMethod,
       orderSource,
-      status = 'completed',
+      status = 'all', // Changed from 'completed' to 'all' to include pending transactions by default
       startDate,
       endDate,
       limit = 50

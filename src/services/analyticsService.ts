@@ -125,7 +125,7 @@ export class AnalyticsService {
         if (filters.status && filters.status !== 'all') {
           transactionFilter.status = filters.status;
         } else {
-          transactionFilter.status = 'completed'; // Default to completed
+          transactionFilter.status = { $in: ['completed', 'pending'] }; // Include both completed and pending
         }
 
         // Apply payment method filter
@@ -143,7 +143,7 @@ export class AnalyticsService {
           logger.info('Applied date filter:', { dateFilter, transactionFilter });
         }
       } else {
-        transactionFilter.status = 'completed'; // Default to completed
+        transactionFilter.status = { $in: ['completed', 'pending'] }; // Include both completed and pending
       }
 
       // Get current date ranges for today/monthly calculations
@@ -282,7 +282,7 @@ export class AnalyticsService {
     try {
       const query: any = {
         store_id: storeId,
-        status: 'completed',
+        status: { $in: ['completed', 'pending'] },
         created_at: {
           $gte: startDate,
           $lte: endDate
@@ -420,7 +420,7 @@ export class AnalyticsService {
    */
   static async getSalesAnalytics(storeId?: string, period?: string): Promise<SalesAnalytics> {
     try {
-      const filter = storeId ? { store_id: storeId, status: 'completed' } : { status: 'completed' };
+      const filter = storeId ? { store_id: storeId, status: { $in: ['completed', 'pending'] } } : { status: { $in: ['completed', 'pending'] } };
 
       // Get date range based on period
       let dateFilter = {};
@@ -541,7 +541,7 @@ export class AnalyticsService {
           {
             $match: {
               store_id: storeId,
-              status: 'completed',
+              status: { $in: ['completed', 'pending'] },
               created_at: { $gte: startDate, $lte: endDate }
             }
           },
@@ -667,7 +667,7 @@ export class AnalyticsService {
         if (filters.status && filters.status !== 'all') {
           transactionFilter.status = filters.status;
         } else {
-          transactionFilter.status = 'completed'; // Default to completed
+          transactionFilter.status = { $in: ['completed', 'pending'] }; // Include both completed and pending
         }
 
         // Apply payment method filter
@@ -684,7 +684,7 @@ export class AnalyticsService {
           transactionFilter.created_at = dateFilter;
         }
       } else {
-        transactionFilter.status = 'completed'; // Default to completed
+        transactionFilter.status = { $in: ['completed', 'pending'] }; // Include both completed and pending
       }
 
       const transactions = await Transaction.find(transactionFilter)
@@ -826,8 +826,9 @@ export class AnalyticsService {
   /**
    * Get top selling products
    */
-  private static async getTopProducts(storeId?: string, limit: number = 10, filters?: DashboardFilters): Promise<any[]> {
+  public static async getTopProducts(storeId?: string, limit: number = 10, filters?: DashboardFilters): Promise<any[]> {
     try {
+      logger.info('getTopProducts called with:', { storeId, limit, filters });
       let matchFilter: any = storeId ? { store_id: storeId } : {};
       
       // Apply filters
@@ -836,7 +837,7 @@ export class AnalyticsService {
         if (filters.status && filters.status !== 'all') {
           matchFilter.status = filters.status;
         } else {
-          matchFilter.status = 'completed'; // Default to completed
+          matchFilter.status = { $in: ['completed', 'pending'] }; // Include both completed and pending by default
         }
 
         // Apply payment method filter
@@ -855,8 +856,10 @@ export class AnalyticsService {
           matchFilter.created_at = dateFilter;
         }
       } else {
-        matchFilter.status = 'completed'; // Default to completed
+        matchFilter.status = { $in: ['completed', 'pending'] }; // Include both completed and pending by default
       }
+      
+      logger.info('getTopProducts final matchFilter:', matchFilter);
       
       const topProducts = await Transaction.aggregate([
         { $match: matchFilter },
@@ -877,6 +880,8 @@ export class AnalyticsService {
           _id: 0 
         }}
       ]);
+      
+      logger.info('getTopProducts aggregation result:', { count: topProducts.length, products: topProducts });
 
       return topProducts;
     } catch (error) {
@@ -898,7 +903,7 @@ export class AnalyticsService {
         if (filters.status && filters.status !== 'all') {
           matchFilter.status = filters.status;
         } else {
-          matchFilter.status = 'completed'; // Default to completed
+          matchFilter.status = { $in: ['completed', 'pending'] }; // Include both completed and pending by default
         }
 
         // Apply payment method filter
@@ -917,7 +922,7 @@ export class AnalyticsService {
           matchFilter.created_at = dateFilter;
         }
       } else {
-        matchFilter.status = 'completed'; // Default to completed
+        matchFilter.status = { $in: ['completed', 'pending'] }; // Include both completed and pending by default
       }
       
       const salesByMonth = await Transaction.aggregate([
@@ -978,7 +983,7 @@ export class AnalyticsService {
         if (filters.status && filters.status !== 'all') {
           baseFilter.status = filters.status;
         } else {
-          baseFilter.status = 'completed'; // Default to completed
+          baseFilter.status = { $in: ['completed', 'pending'] }; // Include both completed and pending by default
         }
 
         // Apply payment method filter
@@ -1038,7 +1043,7 @@ export class AnalyticsService {
    */
   private static async getSalesByPeriod(storeId?: string, period?: string): Promise<any[]> {
     try {
-      const matchFilter = storeId ? { store_id: storeId, status: 'completed' } : { status: 'completed' };
+      const matchFilter = storeId ? { store_id: storeId, status: { $in: ['completed', 'pending'] } } : { status: { $in: ['completed', 'pending'] } };
       
       let groupBy = {};
       let periodFormat = {};
