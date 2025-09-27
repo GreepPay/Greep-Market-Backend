@@ -159,7 +159,7 @@ CREATE TABLE transactions (
     total_amount DECIMAL(12,2) NOT NULL,
     amount_paid DECIMAL(12,2) DEFAULT 0.00,
     change_amount DECIMAL(12,2) DEFAULT 0.00,
-    payment_method VARCHAR(50), -- 'cash', 'card', 'transfer', 'multiple'
+    payment_method VARCHAR(50), -- 'cash', 'card', 'transfer', 'crypto'
     notes TEXT,
     voided_at TIMESTAMP,
     voided_by UUID REFERENCES users(id),

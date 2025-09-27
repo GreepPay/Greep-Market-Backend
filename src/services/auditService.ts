@@ -51,6 +51,7 @@ export class AuditService {
     store_id?: string;
     start_date?: Date;
     end_date?: Date;
+    user_role?: string;
   } = {}): Promise<{
     logs: IAuditLog[];
     total: number;
@@ -67,6 +68,7 @@ export class AuditService {
         store_id,
         start_date,
         end_date,
+        user_role,
       } = options;
 
       // Build query
@@ -76,6 +78,18 @@ export class AuditService {
       if (resource_type) query.resource_type = resource_type;
       if (action) query.action = action;
       if (store_id) query['metadata.store_id'] = store_id;
+      
+      // Handle user_role filtering
+      if (user_role) {
+        if (user_role.includes(',')) {
+          // Multiple roles (e.g., "manager,cashier")
+          const roles = user_role.split(',').map(role => role.trim());
+          query.user_role = { $in: roles };
+        } else {
+          // Single role
+          query.user_role = user_role;
+        }
+      }
       
       if (start_date || end_date) {
         query.created_at = {};

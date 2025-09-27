@@ -11,7 +11,7 @@ export interface CreateTransactionData {
     unit_price: number;
     discount_amount?: number;
   }>;
-  payment_method: 'cash' | 'card' | 'transfer' | 'pos';
+  payment_method: 'cash' | 'card' | 'transfer' | 'crypto';
   notes?: string;
   cashier_id: string;
 }
@@ -87,8 +87,8 @@ export class TransactionService {
         tax_amount: taxAmount,
         total_amount: totalAmount,
         payment_method: transactionData.payment_method,
-        payment_status: 'completed',
-        status: 'completed',
+        payment_status: 'pending',
+        status: 'pending',
         cashier_id: transactionData.cashier_id,
         notes: transactionData.notes,
       });
@@ -113,18 +113,21 @@ export class TransactionService {
   }
 
   /**
-   * Get transactions with pagination
+   * Get transactions with filters
    */
   static async getTransactions(
-    page: number = 1,
-    limit: number = 20,
     storeId?: string,
     status?: string,
-    paymentMethod?: string
+    paymentMethod?: string,
+    startDate?: string,
+    endDate?: string,
+    page: number = 1,
+    limit: number = 20
   ): Promise<{
     transactions: TransactionResponse[];
     total: number;
     page: number;
+    limit: number;
     pages: number;
   }> {
     try {
@@ -142,6 +145,17 @@ export class TransactionService {
         query.payment_method = paymentMethod;
       }
 
+      // Add date filtering
+      if (startDate || endDate) {
+        query.created_at = {};
+        if (startDate) {
+          query.created_at.$gte = new Date(startDate);
+        }
+        if (endDate) {
+          query.created_at.$lte = new Date(endDate);
+        }
+      }
+
       const skip = (page - 1) * limit;
 
       const [transactions, total] = await Promise.all([
@@ -152,11 +166,14 @@ export class TransactionService {
         Transaction.countDocuments(query),
       ]);
 
+      const pages = Math.ceil(total / limit);
+
       return {
         transactions: transactions.map(t => this.formatTransactionResponse(t)),
         total,
         page,
-        pages: Math.ceil(total / limit),
+        limit,
+        pages
       };
     } catch (error) {
       logger.error('Error getting transactions:', error);
@@ -300,6 +317,124 @@ export class TransactionService {
       };
     } catch (error) {
       logger.error('Error getting transaction stats:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update transaction
+   */
+  static async updateTransaction(transactionId: string, updateData: {
+    items?: Array<{
+      product_id: string;
+      quantity: number;
+      unit_price: number;
+      discount_amount?: number;
+    }>;
+    payment_method?: 'cash' | 'card' | 'transfer' | 'crypto';
+    customer_id?: string;
+    notes?: string;
+  }): Promise<TransactionResponse> {
+    try {
+      const transaction = await Transaction.findById(transactionId);
+      if (!transaction) {
+        throw new Error('Transaction not found');
+      }
+
+      // Check if transaction can be updated (only pending transactions can be updated)
+      if (transaction.status !== 'pending') {
+        throw new Error('Only pending transactions can be updated');
+      }
+
+      // If items are being updated, validate and recalculate totals
+      if (updateData.items) {
+        // Validate items
+        for (const item of updateData.items) {
+          if (!item.product_id || !item.quantity || !item.unit_price) {
+            throw new Error('Each item must have product_id, quantity, and unit_price');
+          }
+        }
+
+        // Get product details and validate
+        const productIds = updateData.items.map(item => item.product_id);
+        const products = await Product.find({ _id: { $in: productIds } });
+        
+        if (products.length !== productIds.length) {
+          throw new Error('One or more products not found');
+        }
+
+        // Update items with product names and calculate totals
+        const updatedItems = updateData.items.map(item => {
+          const product = products.find(p => p._id.toString() === item.product_id);
+          if (!product) {
+            throw new Error(`Product not found: ${item.product_id}`);
+          }
+
+          const totalPrice = (item.quantity * item.unit_price) - (item.discount_amount || 0);
+          
+          return {
+            product_id: item.product_id,
+            product_name: product.name,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: totalPrice,
+            discount_amount: item.discount_amount || 0
+          };
+        });
+
+        // Calculate new totals
+        const subtotal = updatedItems.reduce((sum, item) => sum + item.total_price, 0);
+        const discountAmount = updatedItems.reduce((sum, item) => sum + (item.discount_amount || 0), 0);
+        const taxAmount = subtotal * 0.1; // 10% tax rate
+        const totalAmount = subtotal + taxAmount;
+
+        // Update transaction
+        transaction.items = updatedItems;
+        transaction.subtotal = subtotal;
+        transaction.discount_amount = discountAmount;
+        transaction.tax_amount = taxAmount;
+        transaction.total_amount = totalAmount;
+      }
+
+      // Update other fields
+      if (updateData.payment_method) {
+        transaction.payment_method = updateData.payment_method;
+      }
+      if (updateData.customer_id !== undefined) {
+        transaction.customer_id = updateData.customer_id;
+      }
+      if (updateData.notes !== undefined) {
+        transaction.notes = updateData.notes;
+      }
+
+      transaction.updated_at = new Date();
+      await transaction.save();
+
+      return this.formatTransactionResponse(transaction);
+    } catch (error) {
+      logger.error('Error updating transaction:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete transaction
+   */
+  static async deleteTransaction(transactionId: string): Promise<void> {
+    try {
+      const transaction = await Transaction.findById(transactionId);
+      if (!transaction) {
+        throw new Error('Transaction not found');
+      }
+
+      // Check if transaction can be deleted (only pending transactions can be deleted)
+      if (transaction.status !== 'pending') {
+        throw new Error('Only pending transactions can be deleted');
+      }
+
+      await Transaction.findByIdAndDelete(transactionId);
+    } catch (error) {
+      logger.error('Error deleting transaction:', error);
       throw error;
     }
   }

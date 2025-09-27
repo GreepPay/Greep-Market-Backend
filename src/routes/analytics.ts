@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { AnalyticsService } from '../services/analyticsService';
+import { ExpenseService } from '../services/expenseService';
 import { logger } from '../utils/logger';
 
 const router = Router();
@@ -11,14 +12,35 @@ router.use(authenticate);
 
 /**
  * @route   GET /api/v1/analytics/dashboard
- * @desc    Get dashboard analytics
+ * @desc    Get dashboard analytics with filtering support
  * @access  Private
  */
 router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
   try {
     // Use authenticated user's store_id instead of query parameter
     const storeId = (req as any).user.storeId || 'default-store';
-    const metrics = await AnalyticsService.getDashboardMetrics(storeId);
+    
+    // Extract filter parameters
+    const {
+      dateRange = '30d',
+      paymentMethod,
+      orderSource,
+      status = 'completed',
+      startDate,
+      endDate
+    } = req.query;
+
+    // Create filter object
+    const filters = {
+      dateRange: dateRange as string,
+      paymentMethod: paymentMethod as string,
+      orderSource: orderSource as string,
+      status: status as string,
+      startDate: startDate ? new Date(startDate as string) : undefined,
+      endDate: endDate ? new Date(endDate as string) : undefined
+    };
+
+    const metrics = await AnalyticsService.getDashboardMetrics(storeId, filters);
     
     res.json({
       success: true,
@@ -135,6 +157,88 @@ router.get('/customers', asyncHandler(async (req, res) => {
     message: 'Customer analytics endpoint - to be implemented',
     data: null,
   });
+}));
+
+/**
+ * @route   GET /api/v1/analytics/transactions
+ * @desc    Get filtered transactions for dashboard
+ * @access  Private
+ */
+router.get('/transactions', asyncHandler(async (req, res) => {
+  try {
+    const storeId = (req as any).user.storeId || 'default-store';
+    
+    // Extract filter parameters
+    const {
+      dateRange = '30d',
+      paymentMethod,
+      orderSource,
+      status = 'completed',
+      startDate,
+      endDate,
+      limit = 50
+    } = req.query;
+
+    // Create filter object
+    const filters = {
+      dateRange: dateRange as string,
+      paymentMethod: paymentMethod as string,
+      orderSource: orderSource as string,
+      status: status as string,
+      startDate: startDate ? new Date(startDate as string) : undefined,
+      endDate: endDate ? new Date(endDate as string) : undefined
+    };
+
+    const transactions = await AnalyticsService.getFilteredTransactions(storeId, filters, parseInt(limit as string) || 50);
+    
+    res.json({
+      success: true,
+      data: transactions,
+    });
+  } catch (error) {
+    logger.error('Error getting filtered transactions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get filtered transactions',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}));
+
+/**
+ * @route   GET /api/v1/analytics/expenses
+ * @desc    Get expense analytics
+ * @access  Private
+ */
+router.get('/expenses', asyncHandler(async (req, res) => {
+  try {
+    const storeId = (req as any).user.storeId || 'default-store';
+    
+    // Extract filter parameters
+    const {
+      startDate,
+      endDate
+    } = req.query;
+
+    // Get expense statistics
+    const expenseStats = await ExpenseService.getExpenseStats(
+      storeId,
+      startDate ? new Date(startDate as string) : undefined,
+      endDate ? new Date(endDate as string) : undefined
+    );
+    
+    res.json({
+      success: true,
+      data: expenseStats,
+    });
+  } catch (error) {
+    logger.error('Error getting expense analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get expense analytics',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
 }));
 
 /**

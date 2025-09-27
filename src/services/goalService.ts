@@ -78,13 +78,33 @@ export class GoalService {
   /**
    * Get all active goals for a user
    */
-  static async getUserGoals(userId: string, storeId: string): Promise<IGoal[]> {
+  static async getUserGoals(
+    userId: string, 
+    storeId: string, 
+    filters?: {
+      goal_type?: string;
+      is_active?: boolean;
+    }
+  ): Promise<IGoal[]> {
     try {
-      const goals = await Goal.find({
+      const query: any = {
         user_id: userId,
-        store_id: storeId,
-        is_active: true
-      }).sort({ created_at: -1 });
+        store_id: storeId
+      };
+
+      // Apply filters
+      if (filters?.goal_type) {
+        query.goal_type = filters.goal_type;
+      }
+      
+      if (filters?.is_active !== undefined) {
+        query.is_active = filters.is_active;
+      } else {
+        // Default to active goals if no filter specified
+        query.is_active = true;
+      }
+
+      const goals = await Goal.find(query).sort({ created_at: -1 });
 
       return goals;
     } catch (error) {
@@ -349,6 +369,19 @@ export class GoalService {
           throw new Error('Yearly goals cannot exceed 365 days');
         }
         break;
+    }
+  }
+
+  /**
+   * Get a goal by ID
+   */
+  static async getGoalById(goalId: string): Promise<IGoal | null> {
+    try {
+      const goal = await Goal.findById(goalId);
+      return goal;
+    } catch (error) {
+      logger.error('Error getting goal by ID:', error);
+      return null;
     }
   }
 }

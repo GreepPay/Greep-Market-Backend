@@ -27,6 +27,7 @@ import goalRoutes from './routes/goals';
 import auditRoutes from './routes/audit';
 import settingsRoutes from './routes/settings';
 import riderRoutes from './routes/riders';
+import { auditMiddleware, auditAuth } from './middleware/audit';
 // import monitoringRoutes from './routes/monitoring';
 
 class App {
@@ -83,8 +84,23 @@ class App {
     // Compression
     this.app.use(compression());
 
-    // Request logging
-    this.app.use(morgan('combined', { stream: morganStream }));
+    // Request logging - only log significant requests
+    this.app.use(morgan('combined', { 
+      stream: morganStream,
+      skip: (req, res) => {
+        // Skip logging for static files and health checks
+        return req.url.includes('/static') || 
+               req.url.includes('/assets') || 
+               req.url.includes('/favicon.ico') ||
+               req.url.includes('/health') ||
+               (req.method === 'GET' && !req.url.includes('/api/'));
+      }
+    }));
+
+    // Audit middleware for comprehensive logging (can be disabled with DISABLE_AUDIT_MIDDLEWARE=true)
+    if (process.env.DISABLE_AUDIT_MIDDLEWARE !== 'true') {
+      this.app.use(auditMiddleware);
+    }
 
     // Monitoring middleware
     // this.app.use(requestMonitoring);
@@ -126,6 +142,19 @@ class App {
       });
     });
 
+    // Favicon endpoint to prevent 404 errors
+    this.app.get('/favicon.ico', (req, res) => {
+      res.status(204).end(); // No content response
+    });
+
+    // Static files endpoint to prevent 404 errors for frontend assets
+    this.app.get('/static/*', (req, res) => {
+      res.status(404).json({ 
+        message: 'Static files are served by the frontend development server',
+        note: 'This is a backend API server. Frontend assets are served separately.'
+      });
+    });
+
     // API documentation endpoint
     this.app.get('/api/docs', (req, res) => {
       res.json({
@@ -155,7 +184,7 @@ class App {
     const apiPrefix = `/api/${config.app.version}`;
 
     // API routes
-    this.app.use(`${apiPrefix}/auth`, authRoutes);
+    this.app.use(`${apiPrefix}/auth`, auditAuth, authRoutes);
     this.app.use(`${apiPrefix}/users`, userRoutes);
     this.app.use(`${apiPrefix}/stores`, storeRoutes);
     this.app.use(`${apiPrefix}/products`, productRoutes);
