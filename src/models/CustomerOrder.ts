@@ -1,0 +1,216 @@
+import mongoose, { Document, Schema } from 'mongoose';
+
+export interface IOrderItem {
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  notes?: string;
+}
+
+export enum OrderStatus {
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  PREPARING = 'preparing',
+  READY = 'ready',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled'
+}
+
+export enum PaymentMethod {
+  CASH_ON_DELIVERY = 'cash_on_delivery',
+  ISBANK_TRANSFER = 'isbank_transfer',
+  NAIRA_TRANSFER = 'naira_transfer',
+  POS = 'pos'
+}
+
+export enum DeliveryMethod {
+  SELF_PICKUP = 'self_pickup',
+  DELIVERY = 'delivery'
+}
+
+export interface ICustomerOrder extends Document {
+  order_number: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string;
+  store_id: string;
+  items: IOrderItem[];
+  status: OrderStatus;
+  payment_method: PaymentMethod;
+  delivery_method: DeliveryMethod;
+  subtotal: number;
+  delivery_fee: number;
+  total_amount: number;
+  delivery_address?: string;
+  notes?: string;
+  whatsapp_sent: boolean;
+  whatsapp_message?: string;
+  created_at: Date;
+  updated_at: Date;
+  confirmed_at?: Date;
+  completed_at?: Date;
+}
+
+const OrderItemSchema = new Schema<IOrderItem>({
+  product_id: {
+    type: String,
+    required: true
+  },
+  product_name: {
+    type: String,
+    required: true
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    min: 1
+  },
+  unit_price: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  total_price: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  notes: {
+    type: String,
+    maxlength: 500
+  }
+}, { _id: false });
+
+const CustomerOrderSchema = new Schema<ICustomerOrder>({
+  order_number: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true
+  },
+  customer_name: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 100
+  },
+  customer_phone: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 20
+  },
+  customer_email: {
+    type: String,
+    trim: true,
+    lowercase: true,
+    maxlength: 255,
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+  },
+  store_id: {
+    type: String,
+    required: true,
+    index: true
+  },
+  items: {
+    type: [OrderItemSchema],
+    required: true,
+    validate: {
+      validator: function(items: IOrderItem[]) {
+        return items && items.length > 0;
+      },
+      message: 'Order must have at least one item'
+    }
+  },
+  status: {
+    type: String,
+    enum: Object.values(OrderStatus),
+    default: OrderStatus.PENDING,
+    index: true
+  },
+  payment_method: {
+    type: String,
+    enum: Object.values(PaymentMethod),
+    required: true
+  },
+  delivery_method: {
+    type: String,
+    enum: Object.values(DeliveryMethod),
+    required: true
+  },
+  subtotal: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  delivery_fee: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  total_amount: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  delivery_address: {
+    type: String,
+    trim: true,
+    maxlength: 500
+  },
+  notes: {
+    type: String,
+    trim: true,
+    maxlength: 1000
+  },
+  whatsapp_sent: {
+    type: Boolean,
+    default: false
+  },
+  whatsapp_message: {
+    type: String,
+    maxlength: 2000
+  },
+  confirmed_at: {
+    type: Date
+  },
+  completed_at: {
+    type: Date
+  }
+}, {
+  timestamps: {
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
+  }
+});
+
+// Generate order number before saving
+CustomerOrderSchema.pre('save', async function(next) {
+  if (this.isNew) {
+    const today = new Date();
+    const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+    
+    // Find the last order for today
+    const lastOrder = await CustomerOrder.findOne({
+      order_number: new RegExp(`^ORD-${dateStr}-`)
+    }).sort({ order_number: -1 });
+    
+    let sequence = 1;
+    if (lastOrder) {
+      const lastSequence = parseInt(lastOrder.order_number.split('-')[2]);
+      sequence = lastSequence + 1;
+    }
+    
+    this.order_number = `ORD-${dateStr}-${sequence.toString().padStart(3, '0')}`;
+  }
+  next();
+});
+
+// Indexes for better performance
+CustomerOrderSchema.index({ store_id: 1, status: 1 });
+CustomerOrderSchema.index({ customer_phone: 1 });
+CustomerOrderSchema.index({ created_at: -1 });
+
+export const CustomerOrder = mongoose.model<ICustomerOrder>('CustomerOrder', CustomerOrderSchema);

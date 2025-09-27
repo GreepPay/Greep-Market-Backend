@@ -125,7 +125,7 @@ export class AnalyticsService {
         if (filters.status && filters.status !== 'all') {
           transactionFilter.status = filters.status;
         } else {
-          transactionFilter.status = 'completed'; // Default to completed
+          transactionFilter.status = { $in: ['completed', 'pending'] }; // Include both completed and pending
         }
 
         // Apply payment method filter
@@ -143,7 +143,7 @@ export class AnalyticsService {
           logger.info('Applied date filter:', { dateFilter, transactionFilter });
         }
       } else {
-        transactionFilter.status = 'completed'; // Default to completed
+        transactionFilter.status = { $in: ['completed', 'pending'] }; // Include both completed and pending
       }
 
       // Get current date ranges for today/monthly calculations
@@ -667,7 +667,7 @@ export class AnalyticsService {
         if (filters.status && filters.status !== 'all') {
           transactionFilter.status = filters.status;
         } else {
-          transactionFilter.status = 'completed'; // Default to completed
+          transactionFilter.status = { $in: ['completed', 'pending'] }; // Include both completed and pending
         }
 
         // Apply payment method filter
@@ -684,7 +684,7 @@ export class AnalyticsService {
           transactionFilter.created_at = dateFilter;
         }
       } else {
-        transactionFilter.status = 'completed'; // Default to completed
+        transactionFilter.status = { $in: ['completed', 'pending'] }; // Include both completed and pending
       }
 
       const transactions = await Transaction.find(transactionFilter)

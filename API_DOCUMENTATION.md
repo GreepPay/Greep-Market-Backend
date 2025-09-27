@@ -844,6 +844,235 @@ GET /api/v1/audit/analytics?start_date=2024-01-01&end_date=2024-01-31&store_id=d
 Authorization: Bearer your-access-token
 ```
 
+## Public Customer Catalog
+
+### Get Public Product Catalog
+
+```http
+GET /api/v1/public/catalog?store_id=default-store&category=food&search=bread&is_active=true&sortBy=name&sortOrder=asc
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Catalog retrieved successfully",
+  "data": {
+    "products": [
+      {
+        "_id": "product_id",
+        "name": "Product Name",
+        "description": "Product description",
+        "price": 75.0,
+        "category": "food",
+        "sku": "SKU123",
+        "barcode": "1234567890123",
+        "stock_quantity": 100,
+        "store_id": "default-store",
+        "tags": ["tag1", "tag2"],
+        "images": ["image1.jpg", "image2.jpg"],
+        "is_active": true,
+        "is_featured": false
+      }
+    ],
+    "total": 1
+  }
+}
+```
+
+### Get Product by ID (Public)
+
+```http
+GET /api/v1/public/product/{id}?store_id=default-store
+```
+
+### Get Product by Barcode (Public)
+
+```http
+GET /api/v1/public/product/barcode/{barcode}?store_id=default-store
+```
+
+### Get Product Categories (Public)
+
+```http
+GET /api/v1/public/categories?store_id=default-store
+```
+
+### Create Customer Order
+
+```http
+POST /api/v1/public/orders
+Content-Type: application/json
+
+{
+  "customer_name": "John Doe",
+  "customer_phone": "+905551234567",
+  "customer_email": "john@example.com",
+  "store_id": "default-store",
+  "items": [
+    {
+      "product_id": "product_id",
+      "quantity": 2,
+      "notes": "Extra fresh please"
+    }
+  ],
+  "payment_method": "cash_on_delivery",
+  "delivery_method": "delivery",
+  "delivery_address": "123 Main St, Istanbul",
+  "notes": "Please call before delivery"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Order created successfully",
+  "data": {
+    "order": {
+      "_id": "order_id",
+      "order_number": "ORD-20240101-001",
+      "customer_name": "John Doe",
+      "customer_phone": "+905551234567",
+      "customer_email": "john@example.com",
+      "store_id": "default-store",
+      "items": [
+        {
+          "product_id": "product_id",
+          "product_name": "Product Name",
+          "quantity": 2,
+          "unit_price": 75.0,
+          "total_price": 150.0,
+          "notes": "Extra fresh please"
+        }
+      ],
+      "status": "pending",
+      "payment_method": "cash_on_delivery",
+      "delivery_method": "delivery",
+      "subtotal": 150.0,
+      "delivery_fee": 25.0,
+      "total_amount": 175.0,
+      "delivery_address": "123 Main St, Istanbul",
+      "notes": "Please call before delivery",
+      "whatsapp_sent": false,
+      "created_at": "2024-01-01T00:00:00.000Z"
+    },
+    "whatsapp_share_link": "https://wa.me/905551234567?text=Hi!%20I've%20placed%20order%20%23ORD-20240101-001%20for%20John%20Doe.",
+    "order_tracking_url": "http://localhost:3001/api/v1/public/orders/ORD-20240101-001/status"
+  }
+}
+```
+
+### Get Order Status (Public Tracking)
+
+```http
+GET /api/v1/public/orders/{orderNumber}/status
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Order status retrieved successfully",
+  "data": {
+    "order_number": "ORD-20240101-001",
+    "customer_name": "John Doe",
+    "status": "confirmed",
+    "total_amount": 175.0,
+    "payment_method": "cash_on_delivery",
+    "delivery_method": "delivery",
+    "created_at": "2024-01-01T00:00:00.000Z",
+    "confirmed_at": "2024-01-01T00:30:00.000Z",
+    "completed_at": null,
+    "items": [
+      {
+        "product_name": "Product Name",
+        "quantity": 2,
+        "unit_price": 75.0,
+        "total_price": 150.0
+      }
+    ]
+  }
+}
+```
+
+## Customer Orders Management (Admin)
+
+### Get Customer Orders
+
+```http
+GET /api/v1/admin/customer-orders?store_id=default-store&status=pending&customer_phone=+905551234567&start_date=2024-01-01&end_date=2024-01-31&page=1&limit=20
+Authorization: Bearer your-access-token
+```
+
+### Get Customer Order by ID
+
+```http
+GET /api/v1/admin/customer-orders/{id}
+Authorization: Bearer your-access-token
+```
+
+### Update Order Status
+
+```http
+PUT /api/v1/admin/customer-orders/{id}/status
+Authorization: Bearer your-access-token
+Content-Type: application/json
+
+{
+  "status": "confirmed",
+  "notes": "Order confirmed and being prepared"
+}
+```
+
+### Mark WhatsApp as Sent
+
+```http
+POST /api/v1/admin/customer-orders/{id}/whatsapp-sent
+Authorization: Bearer your-access-token
+```
+
+### Convert Order to Transaction
+
+```http
+POST /api/v1/admin/customer-orders/{id}/convert-to-transaction
+Authorization: Bearer your-access-token
+```
+
+### Get Order Statistics
+
+```http
+GET /api/v1/admin/customer-orders/stats/overview?store_id=default-store&start_date=2024-01-01&end_date=2024-01-31
+Authorization: Bearer your-access-token
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Order statistics retrieved successfully",
+  "data": {
+    "totalOrders": 50,
+    "totalRevenue": 8750.0,
+    "pendingOrders": 5,
+    "confirmedOrders": 10,
+    "completedOrders": 35,
+    "averageOrderValue": 175.0
+  }
+}
+```
+
+### Get WhatsApp Share Link
+
+```http
+GET /api/v1/admin/customer-orders/{id}/whatsapp-link
+Authorization: Bearer your-access-token
+```
+
 ## Monitoring
 
 ### Health Check
