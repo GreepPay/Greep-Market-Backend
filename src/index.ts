@@ -30,7 +30,9 @@ import riderRoutes from './routes/riders';
 import publicCatalogRoutes from './routes/publicCatalog';
 import customerOrderRoutes from './routes/customerOrders';
 import autoCompleteRoutes from './routes/autoComplete';
+import notificationRoutes from './routes/notifications';
 import { CronService } from './services/cronService';
+import { SchedulerService } from './services/schedulerService';
 import { auditMiddleware, auditAuth } from './middleware/audit';
 // import monitoringRoutes from './routes/monitoring';
 
@@ -182,6 +184,7 @@ class App {
           public_catalog: '/api/v1/public',
           customer_orders: '/api/v1/admin/customer-orders',
           auto_complete: '/api/v1/auto-complete',
+          notifications: '/api/v1/notifications',
         },
       });
     });
@@ -207,6 +210,7 @@ class App {
     this.app.use(`${apiPrefix}/public`, publicCatalogRoutes);
     this.app.use(`${apiPrefix}/admin/customer-orders`, customerOrderRoutes);
     this.app.use(`${apiPrefix}/auto-complete`, autoCompleteRoutes);
+    this.app.use(`${apiPrefix}/notifications`, notificationRoutes);
     // this.app.use(`${apiPrefix}/monitoring`, monitoringRoutes);
 
     // Root endpoint
@@ -254,6 +258,9 @@ class App {
         
         // Start cron jobs
         CronService.startAllJobs();
+        
+        // Start notification scheduler
+        SchedulerService.initialize();
       });
     } catch (error) {
       logger.error('Failed to start server:', error);
@@ -265,6 +272,9 @@ class App {
     try {
       // Stop cron jobs
       CronService.stopAllJobs();
+      
+      // Stop notification scheduler
+      SchedulerService.stop();
       
       await closeDatabaseConnections();
       // await closeRedisConnection();

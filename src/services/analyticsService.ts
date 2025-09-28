@@ -26,6 +26,10 @@ export interface DashboardMetrics {
   totalTransactions: number;
   averageTransactionValue: number;
   growthRate: number;
+  salesVsYesterday: number;
+  expensesVsYesterday: number;
+  profitVsYesterday: number;
+  transactionsVsYesterday: number;
   totalProducts: number;
   lowStockItems: number;
   todaySales: number;
@@ -238,6 +242,9 @@ export class AnalyticsService {
 
       // Calculate growth rate (current period vs previous period)
       const growthRate = await this.calculateGrowthRate(storeId, filters);
+      
+      // Calculate vs yesterday metrics
+      const vsYesterdayMetrics = await this.calculateVsYesterdayMetrics(storeId, filters);
 
       // Get sales data based on the filter period
       let salesByPeriod;
@@ -260,6 +267,10 @@ export class AnalyticsService {
         totalTransactions,
         averageTransactionValue,
         growthRate,
+        salesVsYesterday: vsYesterdayMetrics.salesVsYesterday,
+        expensesVsYesterday: vsYesterdayMetrics.expensesVsYesterday,
+        profitVsYesterday: vsYesterdayMetrics.profitVsYesterday,
+        transactionsVsYesterday: vsYesterdayMetrics.transactionsVsYesterday,
         totalProducts,
         lowStockItems: lowStockProducts,
         todaySales: todaySales,
@@ -991,6 +1002,113 @@ export class AnalyticsService {
       logger.error('Error getting sales by month:', error);
       return [];
     }
+  }
+
+  /**
+   * Calculate percentage change vs yesterday for each metric
+   */
+  private static async calculateVsYesterdayMetrics(storeId?: string, filters?: DashboardFilters): Promise<{
+    salesVsYesterday: number;
+    expensesVsYesterday: number;
+    profitVsYesterday: number;
+    transactionsVsYesterday: number;
+  }> {
+    try {
+      const timezone = getStoreTimezone(storeId);
+      
+      // Get today and yesterday date ranges
+      const todayRange = getTodayRange(timezone);
+      const yesterday = new Date(todayRange.start);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayEnd = new Date(todayRange.end);
+      yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+
+      let baseFilter: any = storeId ? { store_id: storeId } : {};
+      
+      // Apply filters
+      if (filters) {
+        if (filters.status && filters.status !== 'all') {
+          baseFilter.status = filters.status;
+        } else {
+          baseFilter.status = { $in: ['completed', 'pending'] };
+        }
+
+        if (filters.paymentMethod && filters.paymentMethod !== 'all') {
+          baseFilter.payment_method = filters.paymentMethod;
+        }
+
+        if (filters.orderSource && filters.orderSource !== 'all') {
+          baseFilter.order_source = filters.orderSource;
+        }
+      } else {
+        baseFilter.status = 'completed';
+      }
+
+      // Get today's data
+      const [todaySales, todayTransactions, todayExpenses] = await Promise.all([
+        Transaction.aggregate([
+          { $match: { ...baseFilter, created_at: { $gte: todayRange.start, $lte: todayRange.end } } },
+          { $group: { _id: null, total: { $sum: '$total_amount' } } }
+        ]),
+        Transaction.countDocuments({ ...baseFilter, created_at: { $gte: todayRange.start, $lte: todayRange.end } }),
+        // Get today's expenses
+        ExpenseService.getExpensesByDateRange(todayRange.start, todayRange.end, storeId)
+      ]);
+
+      // Get yesterday's data
+      const [yesterdaySales, yesterdayTransactions, yesterdayExpenses] = await Promise.all([
+        Transaction.aggregate([
+          { $match: { ...baseFilter, created_at: { $gte: yesterday, $lte: yesterdayEnd } } },
+          { $group: { _id: null, total: { $sum: '$total_amount' } } }
+        ]),
+        Transaction.countDocuments({ ...baseFilter, created_at: { $gte: yesterday, $lte: yesterdayEnd } }),
+        // Get yesterday's expenses
+        ExpenseService.getExpensesByDateRange(yesterday, yesterdayEnd, storeId)
+      ]);
+
+      const todaySalesTotal = todaySales[0]?.total || 0;
+      const yesterdaySalesTotal = yesterdaySales[0]?.total || 0;
+      const todayExpensesTotal = todayExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+      const yesterdayExpensesTotal = yesterdayExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+      const todayTransactionsCount = todayTransactions;
+      const yesterdayTransactionsCount = yesterdayTransactions;
+      
+      const todayProfit = todaySalesTotal - todayExpensesTotal;
+      const yesterdayProfit = yesterdaySalesTotal - yesterdayExpensesTotal;
+
+      // Calculate percentage changes
+      const salesVsYesterday = this.calculatePercentageChange(yesterdaySalesTotal, todaySalesTotal);
+      const expensesVsYesterday = this.calculatePercentageChange(yesterdayExpensesTotal, todayExpensesTotal);
+      const profitVsYesterday = this.calculatePercentageChange(yesterdayProfit, todayProfit);
+      const transactionsVsYesterday = this.calculatePercentageChange(yesterdayTransactionsCount, todayTransactionsCount);
+
+      return {
+        salesVsYesterday,
+        expensesVsYesterday,
+        profitVsYesterday,
+        transactionsVsYesterday
+      };
+    } catch (error) {
+      logger.error('Error calculating vs yesterday metrics:', error);
+      return {
+        salesVsYesterday: 0,
+        expensesVsYesterday: 0,
+        profitVsYesterday: 0,
+        transactionsVsYesterday: 0
+      };
+    }
+  }
+
+  /**
+   * Calculate percentage change between two values
+   */
+  private static calculatePercentageChange(oldValue: number, newValue: number): number {
+    if (oldValue === 0) {
+      return newValue > 0 ? 100 : 0;
+    }
+    
+    const percentageChange = ((newValue - oldValue) / oldValue) * 100;
+    return Math.round(percentageChange * 100) / 100; // Round to 2 decimal places
   }
 
   /**

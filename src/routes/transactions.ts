@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { TransactionService } from '../services/transactionService';
 import { AuditService } from '../services/auditService';
+import { MilestoneService } from '../services/milestoneService';
 import { logger } from '../utils/logger';
 
 const router = Router();
@@ -89,6 +90,22 @@ router.post('/', asyncHandler(async (req, res) => {
     }
 
     const transaction = await TransactionService.createTransaction(transactionData);
+    
+    // Trigger milestone and achievement checks
+    try {
+      const userId = (req as any).user.id;
+      const storeId = transactionData.store_id;
+      
+      // Check for achievements
+      await MilestoneService.checkAchievements(storeId, userId, transaction);
+      
+      // Check milestones (this will be done periodically, but we can also check after each transaction)
+      await MilestoneService.checkMilestones(storeId, userId);
+      
+    } catch (notificationError) {
+      // Don't fail the transaction if notification fails
+      logger.error('Error checking milestones/achievements:', notificationError);
+    }
     
     // Prepare detailed transaction information for audit log
     const transactionDetails = {
