@@ -1,6 +1,7 @@
 import { Transaction, ITransaction } from '../models/Transaction';
 import { Product } from '../models/Product';
 import { logger } from '../utils/logger';
+import { parseDateRange, getStoreTimezone, debugTimezoneInfo } from '../utils/timezone';
 
 export interface CreateTransactionData {
   store_id: string;
@@ -142,14 +143,32 @@ export class TransactionService {
         query.payment_method = paymentMethod;
       }
 
-      // Add date filtering
+      // Add timezone-aware date filtering
       if (startDate || endDate) {
-        query.created_at = {};
-        if (startDate) {
-          query.created_at.$gte = new Date(startDate);
-        }
-        if (endDate) {
-          query.created_at.$lte = new Date(endDate);
+        // Debug timezone information
+        debugTimezoneInfo(startDate, getStoreTimezone(storeId));
+        
+        // Parse date range with timezone awareness
+        const dateRange = parseDateRange(startDate, endDate, getStoreTimezone(storeId));
+        
+        if (dateRange) {
+          query.created_at = {
+            $gte: dateRange.start,
+            $lte: dateRange.end
+          };
+          
+          logger.info('Applied timezone-aware date filter:', {
+            storeId,
+            startDate,
+            endDate,
+            timezone: getStoreTimezone(storeId),
+            filterRange: {
+              start: dateRange.start.toISOString(),
+              end: dateRange.end.toISOString()
+            }
+          });
+        } else {
+          logger.warn('Failed to parse date range, skipping date filter:', { startDate, endDate });
         }
       }
 
