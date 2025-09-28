@@ -3,6 +3,14 @@ import { Transaction } from '../models/Transaction';
 import { User } from '../models/User';
 import { ExpenseService } from './expenseService';
 import { logger } from '../utils/logger';
+import { 
+  parseDateRange, 
+  getStoreTimezone, 
+  getTodayRange, 
+  getThisMonthRange, 
+  getLastNDaysRange,
+  debugTimezoneInfo 
+} from '../utils/timezone';
 
 export interface DashboardFilters {
   dateRange?: string;
@@ -18,6 +26,10 @@ export interface DashboardMetrics {
   totalTransactions: number;
   averageTransactionValue: number;
   growthRate: number;
+  salesVsYesterday: number;
+  expensesVsYesterday: number;
+  profitVsYesterday: number;
+  transactionsVsYesterday: number;
   totalProducts: number;
   lowStockItems: number;
   todaySales: number;
@@ -112,8 +124,9 @@ export class AnalyticsService {
       logger.info('Dashboard metrics request:', { storeId, filters });
       
       // Log the date filter that will be applied
-      const dateFilter = this.getDateFilter(filters);
-      logger.info('Date filter applied:', { dateFilter, filters });
+      const storeTimezone = getStoreTimezone(storeId);
+      const dateFilter = this.getDateFilter(filters, storeTimezone);
+      logger.info('Date filter applied:', { dateFilter, filters, timezone: storeTimezone });
       
       // Build base query filters
       const productFilter = storeId ? { store_id: storeId } : {};
@@ -137,61 +150,63 @@ export class AnalyticsService {
         // This can be added later if needed
 
         // Apply date range filter
-        const dateFilter = this.getDateFilter(filters);
+        const dateFilter = this.getDateFilter(filters, storeTimezone);
         if (dateFilter) {
           transactionFilter.created_at = dateFilter;
-          logger.info('Applied date filter:', { dateFilter, transactionFilter });
+          logger.info('Applied timezone-aware date filter:', { dateFilter, transactionFilter, timezone: storeTimezone });
         }
       } else {
         transactionFilter.status = { $in: ['completed', 'pending'] }; // Include both completed and pending
       }
 
-      // Get current date ranges for today/monthly calculations
-      const now = new Date();
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      // Get timezone-aware date ranges for today/monthly calculations
+      const todayRange = getTodayRange(storeTimezone);
+      const monthRange = getThisMonthRange(storeTimezone);
 
       // Create separate filters for today and monthly calculations
       // Today filter: use the applied date filter (for "today" this will be today's range)
       // Monthly filter: always use the full month range for monthly calculations
       const todayFilter = transactionFilter; // Use the filtered date range
-      const monthlyFilter = { ...transactionFilter, created_at: { $gte: startOfMonth } }; // Always use full month for monthly data
+      const monthlyFilter = { ...transactionFilter, created_at: { $gte: monthRange.start } }; // Always use full month for monthly data
 
       // Get expense data - use same date filtering as transactions
       let expenseStartDate, expenseEndDate;
       if (filters && filters.dateRange) {
         // Use the same date range as transactions
-        const dateFilter = this.getDateFilter(filters);
+        const dateFilter = this.getDateFilter(filters, storeTimezone);
         if (dateFilter) {
           expenseStartDate = dateFilter.$gte;
           expenseEndDate = dateFilter.$lte;
         } else {
-          expenseStartDate = startOfDay;
-          expenseEndDate = endOfDay;
+          expenseStartDate = todayRange.start;
+          expenseEndDate = todayRange.end;
         }
       } else {
-        expenseStartDate = startOfDay;
-        expenseEndDate = endOfDay;
+        expenseStartDate = todayRange.start;
+        expenseEndDate = todayRange.end;
       }
       
       // Debug logging for filters
       logger.info('Filter breakdown:', { 
+        timezone: storeTimezone,
         todayFilter, 
         monthlyFilter, 
         expenseStartDate: expenseStartDate?.toISOString(), 
         expenseEndDate: expenseEndDate?.toISOString(),
-        startOfDay: startOfDay.toISOString(),
-        endOfDay: endOfDay.toISOString(),
-        startOfMonth: startOfMonth.toISOString(),
-        endOfMonth: endOfMonth.toISOString()
+        todayRange: {
+          start: todayRange.start.toISOString(),
+          end: todayRange.end.toISOString()
+        },
+        monthRange: {
+          start: monthRange.start.toISOString(),
+          end: monthRange.end.toISOString()
+        }
       });
       
       const expenseStats = await ExpenseService.getExpenseStats(storeId, expenseStartDate, expenseEndDate);
         
       // Monthly expenses should always use monthly date range
-      const monthlyExpenseStats = await ExpenseService.getExpenseStats(storeId, startOfMonth, endOfMonth);
+      const monthlyExpenseStats = await ExpenseService.getExpenseStats(storeId, monthRange.start, monthRange.end);
 
       // Parallel queries for better performance
       const [
@@ -227,6 +242,9 @@ export class AnalyticsService {
 
       // Calculate growth rate (current period vs previous period)
       const growthRate = await this.calculateGrowthRate(storeId, filters);
+      
+      // Calculate vs yesterday metrics
+      const vsYesterdayMetrics = await this.calculateVsYesterdayMetrics(storeId, filters);
 
       // Get sales data based on the filter period
       let salesByPeriod;
@@ -249,6 +267,10 @@ export class AnalyticsService {
         totalTransactions,
         averageTransactionValue,
         growthRate,
+        salesVsYesterday: vsYesterdayMetrics.salesVsYesterday,
+        expensesVsYesterday: vsYesterdayMetrics.expensesVsYesterday,
+        profitVsYesterday: vsYesterdayMetrics.profitVsYesterday,
+        transactionsVsYesterday: vsYesterdayMetrics.transactionsVsYesterday,
         totalProducts,
         lowStockItems: lowStockProducts,
         todaySales: todaySales,
@@ -679,7 +701,8 @@ export class AnalyticsService {
         // This can be added later if needed
 
         // Apply date range filter
-        const dateFilter = this.getDateFilter(filters);
+        const timezone = getStoreTimezone(storeId);
+        const dateFilter = this.getDateFilter(filters, timezone);
         if (dateFilter) {
           transactionFilter.created_at = dateFilter;
         }
@@ -761,63 +784,90 @@ export class AnalyticsService {
   }
 
   /**
-   * Get date filter based on filters
+   * Get timezone-aware date filter based on filters
    */
-  private static getDateFilter(filters?: DashboardFilters): any {
+  private static getDateFilter(filters?: DashboardFilters, timezone: string = 'Europe/Istanbul'): any {
     if (!filters) return null;
 
     // If date range is provided, prioritize it over custom dates
     if (filters.dateRange) {
-      const now = new Date();
-      let startDate: Date;
-
       switch (filters.dateRange) {
-        case 'today':
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        case 'today': {
+          const todayRange = getTodayRange(timezone);
           return {
-            $gte: startDate,
-            $lte: endOfDay
+            $gte: todayRange.start,
+            $lte: todayRange.end
           };
-        case 'this_month':
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        }
+        case 'this_month': {
+          const monthRange = getThisMonthRange(timezone);
           return {
-            $gte: startDate,
-            $lte: endOfMonth
+            $gte: monthRange.start,
+            $lte: monthRange.end
           };
-        case '7d':
-          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          break;
-        case '30d':
-          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          break;
-        case '90d':
-          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-          break;
-        case '1y':
-          startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-          break;
+        }
+        case '7d': {
+          const weekRange = getLastNDaysRange(7, timezone);
+          return {
+            $gte: weekRange.start,
+            $lte: weekRange.end
+          };
+        }
+        case '30d': {
+          const monthRange = getLastNDaysRange(30, timezone);
+          return {
+            $gte: monthRange.start,
+            $lte: monthRange.end
+          };
+        }
+        case '90d': {
+          const quarterRange = getLastNDaysRange(90, timezone);
+          return {
+            $gte: quarterRange.start,
+            $lte: quarterRange.end
+          };
+        }
+        case '1y': {
+          const yearRange = getLastNDaysRange(365, timezone);
+          return {
+            $gte: yearRange.start,
+            $lte: yearRange.end
+          };
+        }
         default:
           return null;
       }
-
-      return {
-        $gte: startDate,
-        $lte: now
-      };
     }
 
-    // If custom date range is provided (convert strings to dates)
+    // If custom date range is provided, parse with timezone awareness
     if (filters.startDate && filters.endDate) {
-      const startDate = new Date(filters.startDate);
-      const endDate = new Date(filters.endDate);
-      // Set end date to end of day
-      endDate.setHours(23, 59, 59, 999);
-      return {
-        $gte: startDate,
-        $lte: endDate
-      };
+      // Handle both Date objects and string dates
+      let startDateStr: string;
+      let endDateStr: string;
+      
+      if (filters.startDate instanceof Date) {
+        startDateStr = filters.startDate.toISOString().split('T')[0];
+      } else if (typeof filters.startDate === 'string') {
+        startDateStr = filters.startDate;
+      } else {
+        return null;
+      }
+      
+      if (filters.endDate instanceof Date) {
+        endDateStr = filters.endDate.toISOString().split('T')[0];
+      } else if (typeof filters.endDate === 'string') {
+        endDateStr = filters.endDate;
+      } else {
+        return null;
+      }
+      
+      const dateRange = parseDateRange(startDateStr, endDateStr, timezone);
+      if (dateRange) {
+        return {
+          $gte: dateRange.start,
+          $lte: dateRange.end
+        };
+      }
     }
 
     return null;
@@ -851,7 +901,8 @@ export class AnalyticsService {
         }
 
         // Apply date range filter
-        const dateFilter = this.getDateFilter(filters);
+        const timezone = getStoreTimezone(storeId);
+        const dateFilter = this.getDateFilter(filters, timezone);
         if (dateFilter) {
           matchFilter.created_at = dateFilter;
         }
@@ -917,7 +968,8 @@ export class AnalyticsService {
         }
 
         // Apply date range filter
-        const dateFilter = this.getDateFilter(filters);
+        const timezone = getStoreTimezone(storeId);
+        const dateFilter = this.getDateFilter(filters, timezone);
         if (dateFilter) {
           matchFilter.created_at = dateFilter;
         }
@@ -953,11 +1005,118 @@ export class AnalyticsService {
   }
 
   /**
+   * Calculate percentage change vs yesterday for each metric
+   */
+  private static async calculateVsYesterdayMetrics(storeId?: string, filters?: DashboardFilters): Promise<{
+    salesVsYesterday: number;
+    expensesVsYesterday: number;
+    profitVsYesterday: number;
+    transactionsVsYesterday: number;
+  }> {
+    try {
+      const timezone = getStoreTimezone(storeId);
+      
+      // Get today and yesterday date ranges
+      const todayRange = getTodayRange(timezone);
+      const yesterday = new Date(todayRange.start);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayEnd = new Date(todayRange.end);
+      yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+
+      let baseFilter: any = storeId ? { store_id: storeId } : {};
+      
+      // Apply filters
+      if (filters) {
+        if (filters.status && filters.status !== 'all') {
+          baseFilter.status = filters.status;
+        } else {
+          baseFilter.status = { $in: ['completed', 'pending'] };
+        }
+
+        if (filters.paymentMethod && filters.paymentMethod !== 'all') {
+          baseFilter.payment_method = filters.paymentMethod;
+        }
+
+        if (filters.orderSource && filters.orderSource !== 'all') {
+          baseFilter.order_source = filters.orderSource;
+        }
+      } else {
+        baseFilter.status = 'completed';
+      }
+
+      // Get today's data
+      const [todaySales, todayTransactions, todayExpenses] = await Promise.all([
+        Transaction.aggregate([
+          { $match: { ...baseFilter, created_at: { $gte: todayRange.start, $lte: todayRange.end } } },
+          { $group: { _id: null, total: { $sum: '$total_amount' } } }
+        ]),
+        Transaction.countDocuments({ ...baseFilter, created_at: { $gte: todayRange.start, $lte: todayRange.end } }),
+        // Get today's expenses
+        ExpenseService.getExpensesByDateRange(todayRange.start, todayRange.end, storeId)
+      ]);
+
+      // Get yesterday's data
+      const [yesterdaySales, yesterdayTransactions, yesterdayExpenses] = await Promise.all([
+        Transaction.aggregate([
+          { $match: { ...baseFilter, created_at: { $gte: yesterday, $lte: yesterdayEnd } } },
+          { $group: { _id: null, total: { $sum: '$total_amount' } } }
+        ]),
+        Transaction.countDocuments({ ...baseFilter, created_at: { $gte: yesterday, $lte: yesterdayEnd } }),
+        // Get yesterday's expenses
+        ExpenseService.getExpensesByDateRange(yesterday, yesterdayEnd, storeId)
+      ]);
+
+      const todaySalesTotal = todaySales[0]?.total || 0;
+      const yesterdaySalesTotal = yesterdaySales[0]?.total || 0;
+      const todayExpensesTotal = todayExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+      const yesterdayExpensesTotal = yesterdayExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+      const todayTransactionsCount = todayTransactions;
+      const yesterdayTransactionsCount = yesterdayTransactions;
+      
+      const todayProfit = todaySalesTotal - todayExpensesTotal;
+      const yesterdayProfit = yesterdaySalesTotal - yesterdayExpensesTotal;
+
+      // Calculate percentage changes
+      const salesVsYesterday = this.calculatePercentageChange(yesterdaySalesTotal, todaySalesTotal);
+      const expensesVsYesterday = this.calculatePercentageChange(yesterdayExpensesTotal, todayExpensesTotal);
+      const profitVsYesterday = this.calculatePercentageChange(yesterdayProfit, todayProfit);
+      const transactionsVsYesterday = this.calculatePercentageChange(yesterdayTransactionsCount, todayTransactionsCount);
+
+      return {
+        salesVsYesterday,
+        expensesVsYesterday,
+        profitVsYesterday,
+        transactionsVsYesterday
+      };
+    } catch (error) {
+      logger.error('Error calculating vs yesterday metrics:', error);
+      return {
+        salesVsYesterday: 0,
+        expensesVsYesterday: 0,
+        profitVsYesterday: 0,
+        transactionsVsYesterday: 0
+      };
+    }
+  }
+
+  /**
+   * Calculate percentage change between two values
+   */
+  private static calculatePercentageChange(oldValue: number, newValue: number): number {
+    if (oldValue === 0) {
+      return newValue > 0 ? 100 : 0;
+    }
+    
+    const percentageChange = ((newValue - oldValue) / oldValue) * 100;
+    return Math.round(percentageChange * 100) / 100; // Round to 2 decimal places
+  }
+
+  /**
    * Calculate growth rate (current period vs previous period)
    */
   private static async calculateGrowthRate(storeId?: string, filters?: DashboardFilters): Promise<number> {
     try {
-      const now = new Date();
+      const timezone = getStoreTimezone(storeId);
       let currentPeriodStart: Date;
       let previousPeriodStart: Date;
       let previousPeriodEnd: Date;
@@ -965,14 +1124,22 @@ export class AnalyticsService {
       // Determine period based on filters
       if (filters?.dateRange) {
         const days = this.getDaysFromDateRange(filters.dateRange);
-        currentPeriodStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-        previousPeriodStart = new Date(currentPeriodStart.getTime() - days * 24 * 60 * 60 * 1000);
+        const currentRange = getLastNDaysRange(days, timezone);
+        const previousRange = getLastNDaysRange(days * 2, timezone);
+        
+        currentPeriodStart = currentRange.start;
+        previousPeriodStart = previousRange.start;
         previousPeriodEnd = new Date(currentPeriodStart.getTime() - 1);
       } else {
         // Default to monthly comparison
-        currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        previousPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        previousPeriodEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        const monthRange = getThisMonthRange(timezone);
+        const lastMonth = new Date(monthRange.start);
+        lastMonth.setMonth(lastMonth.getMonth() - 1);
+        const lastMonthEnd = new Date(monthRange.start.getTime() - 1);
+        
+        currentPeriodStart = monthRange.start;
+        previousPeriodStart = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+        previousPeriodEnd = lastMonthEnd;
       }
 
       let baseFilter: any = storeId ? { store_id: storeId } : {};

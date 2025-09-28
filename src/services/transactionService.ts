@@ -1,6 +1,7 @@
 import { Transaction, ITransaction } from '../models/Transaction';
 import { Product } from '../models/Product';
 import { logger } from '../utils/logger';
+import { parseDateRange, getStoreTimezone, debugTimezoneInfo } from '../utils/timezone';
 
 export interface CreateTransactionData {
   store_id: string;
@@ -11,7 +12,7 @@ export interface CreateTransactionData {
     unit_price: number;
     discount_amount?: number;
   }>;
-  payment_method: 'cash' | 'card' | 'transfer' | 'crypto';
+  payment_method: 'cash' | 'pos_isbank_transfer' | 'naira_transfer' | 'crypto_payment';
   notes?: string;
   cashier_id: string;
 }
@@ -30,7 +31,6 @@ export interface TransactionResponse {
   }>;
   subtotal: number;
   discount_amount: number;
-  tax_amount: number;
   total_amount: number;
   payment_method: string;
   payment_status: string;
@@ -74,8 +74,7 @@ export class TransactionService {
       // Calculate totals
       const subtotal = itemsWithDetails.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
       const totalDiscount = itemsWithDetails.reduce((sum, item) => sum + (item.discount_amount || 0), 0);
-      const taxAmount = 0; // No automatic tax calculation
-      const totalAmount = subtotal - totalDiscount; // Total = subtotal - discounts (no tax)
+      const totalAmount = subtotal - totalDiscount; // Total = subtotal - discounts
 
       // Create transaction
       const transaction = new Transaction({
@@ -84,7 +83,6 @@ export class TransactionService {
         items: itemsWithDetails,
         subtotal,
         discount_amount: totalDiscount,
-        tax_amount: taxAmount,
         total_amount: totalAmount,
         payment_method: transactionData.payment_method,
         payment_status: 'pending',
@@ -145,14 +143,32 @@ export class TransactionService {
         query.payment_method = paymentMethod;
       }
 
-      // Add date filtering
+      // Add timezone-aware date filtering
       if (startDate || endDate) {
-        query.created_at = {};
-        if (startDate) {
-          query.created_at.$gte = new Date(startDate);
-        }
-        if (endDate) {
-          query.created_at.$lte = new Date(endDate);
+        // Debug timezone information
+        debugTimezoneInfo(startDate, getStoreTimezone(storeId));
+        
+        // Parse date range with timezone awareness
+        const dateRange = parseDateRange(startDate, endDate, getStoreTimezone(storeId));
+        
+        if (dateRange) {
+          query.created_at = {
+            $gte: dateRange.start,
+            $lte: dateRange.end
+          };
+          
+          logger.info('Applied timezone-aware date filter:', {
+            storeId,
+            startDate,
+            endDate,
+            timezone: getStoreTimezone(storeId),
+            filterRange: {
+              start: dateRange.start.toISOString(),
+              end: dateRange.end.toISOString()
+            }
+          });
+        } else {
+          logger.warn('Failed to parse date range, skipping date filter:', { startDate, endDate });
         }
       }
 
@@ -331,7 +347,7 @@ export class TransactionService {
       unit_price: number;
       discount_amount?: number;
     }>;
-    payment_method?: 'cash' | 'card' | 'transfer' | 'crypto';
+    payment_method?: 'cash' | 'pos_isbank_transfer' | 'naira_transfer' | 'crypto_payment';
     customer_id?: string;
     notes?: string;
   }): Promise<TransactionResponse> {
@@ -382,22 +398,25 @@ export class TransactionService {
           };
         });
 
-        // Calculate new totals
-        const subtotal = updatedItems.reduce((sum, item) => sum + item.total_price, 0);
+        // Calculate new totals (consistent with creation logic)
+        const subtotal = updatedItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
         const discountAmount = updatedItems.reduce((sum, item) => sum + (item.discount_amount || 0), 0);
-        const taxAmount = subtotal * 0.1; // 10% tax rate
-        const totalAmount = subtotal + taxAmount;
+        const totalAmount = subtotal - discountAmount; // Total = subtotal - discounts
 
         // Update transaction
         transaction.items = updatedItems;
         transaction.subtotal = subtotal;
         transaction.discount_amount = discountAmount;
-        transaction.tax_amount = taxAmount;
         transaction.total_amount = totalAmount;
       }
 
       // Update other fields
       if (updateData.payment_method) {
+        // Validate payment method
+        const validPaymentMethods = ['cash', 'pos_isbank_transfer', 'naira_transfer', 'crypto_payment'];
+        if (!validPaymentMethods.includes(updateData.payment_method)) {
+          throw new Error(`Invalid payment method. Must be one of: ${validPaymentMethods.join(', ')}`);
+        }
         transaction.payment_method = updateData.payment_method;
       }
       if (updateData.customer_id !== undefined) {
@@ -457,7 +476,6 @@ export class TransactionService {
       })),
       subtotal: transaction.subtotal,
       discount_amount: transaction.discount_amount,
-      tax_amount: transaction.tax_amount,
       total_amount: transaction.total_amount,
       payment_method: transaction.payment_method,
       payment_status: transaction.payment_status,

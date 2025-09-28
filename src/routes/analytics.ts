@@ -4,6 +4,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { AnalyticsService } from '../services/analyticsService';
 import { ExpenseService } from '../services/expenseService';
 import { logger } from '../utils/logger';
+import { getStoreTimezone, debugTimezoneInfo } from '../utils/timezone';
 
 const router = Router();
 
@@ -29,6 +30,20 @@ router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
       startDate,
       endDate
     } = req.query;
+
+    // Debug timezone information for the request
+    const timezone = getStoreTimezone(storeId);
+    debugTimezoneInfo(startDate as string, timezone);
+    
+    logger.info('Dashboard request with timezone info:', {
+      storeId,
+      timezone,
+      startDate,
+      endDate,
+      dateRange,
+      userAgent: req.get('User-Agent'),
+      ip: req.ip
+    });
 
     // Create filter object
     const filters = {
