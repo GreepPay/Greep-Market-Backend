@@ -7,9 +7,8 @@ export interface ITransaction extends Document {
   items: TransactionItem[];
   subtotal: number;
   discount_amount: number;
-  tax_amount: number;
   total_amount: number;
-  payment_method: 'cash' | 'card' | 'transfer' | 'crypto';
+  payment_method: 'cash' | 'pos_isbank_transfer' | 'naira_transfer' | 'crypto_payment';
   payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
   status: 'pending' | 'completed' | 'cancelled' | 'voided';
   cashier_id: string;
@@ -78,11 +77,6 @@ const transactionSchema = new Schema<ITransaction>({
     default: 0,
     min: 0,
   },
-  tax_amount: {
-    type: Number,
-    default: 0,
-    min: 0,
-  },
   total_amount: {
     type: Number,
     required: true,
@@ -90,7 +84,7 @@ const transactionSchema = new Schema<ITransaction>({
   },
   payment_method: {
     type: String,
-    enum: ['cash', 'card', 'transfer', 'crypto'],
+    enum: ['cash', 'pos_isbank_transfer', 'naira_transfer', 'crypto_payment'],
     required: true,
   },
   payment_status: {

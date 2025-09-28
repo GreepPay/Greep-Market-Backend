@@ -4,6 +4,8 @@ import { AuditService } from '../services/auditService';
 import { uploadMultiple, uploadJsonFile } from '../middleware/upload';
 import { authenticate } from '../middleware/auth';
 import { logger } from '../utils/logger';
+import { parseTagsFromInput, cleanTagsForStorage } from '../utils/tagFormatter';
+import { findSimilarTags, getTagStatistics } from '../utils/tagNormalizer';
 
 const router = Router();
 
@@ -30,17 +32,8 @@ router.post('/', uploadMultiple('images', 5), async (req: Request, res: Response
       });
     }
 
-    // Parse tags if provided (could be string or array)
-    let parsedTags: string[] = [];
-    if (tags) {
-      if (typeof tags === 'string') {
-        // If tags is a string, split by comma and clean up
-        parsedTags = tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
-      } else if (Array.isArray(tags)) {
-        // If tags is already an array, clean up each tag
-        parsedTags = tags.map(tag => tag.trim()).filter(tag => tag.length > 0);
-      }
-    }
+    // Parse and clean tags using the tag formatter utility
+    const parsedTags = cleanTagsForStorage(parseTagsFromInput(tags));
 
     const product = await ProductService.createProduct({
       name: name || 'Unnamed Product',
@@ -67,7 +60,7 @@ router.post('/', uploadMultiple('images', 5), async (req: Request, res: Response
     res.status(201).json({
     success: true,
       message: 'Product created successfully',
-      data: product,
+      data: ProductService.formatProductResponse(product),
     });
   } catch (error) {
     next(error);
@@ -103,7 +96,10 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     res.json({
       success: true,
       message: 'Products retrieved successfully',
-      data: result,
+      data: {
+        ...result,
+        products: result.products.map(product => ProductService.formatProductResponse(product))
+      },
     });
   } catch (error) {
     next(error);
@@ -155,7 +151,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   res.json({
     success: true,
       message: 'Product retrieved successfully',
-      data: product,
+      data: ProductService.formatProductResponse(product),
     });
   } catch (error) {
     next(error);
@@ -214,7 +210,7 @@ router.put('/:id', uploadMultiple('images', 5), async (req: Request, res: Respon
     res.json({
       success: true,
       message: 'Product updated successfully',
-      data: product,
+      data: ProductService.formatProductResponse(product),
     });
   } catch (error) {
     next(error);
@@ -396,6 +392,160 @@ router.get('/:id/price-history', async (req: Request, res: Response, next: NextF
       data: priceHistory,
     });
   } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Analyze tag statistics and similar tags
+ * GET /api/v1/products/tags/analysis
+ */
+router.get('/tags/analysis', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const storeId = req.query.store_id as string;
+    
+    if (!storeId) {
+      return res.status(400).json({
+        success: false,
+        message: 'store_id is required'
+      });
+    }
+
+    // Get all products for the store
+    const result = await ProductService.getProducts({
+      store_id: storeId,
+      search: undefined,
+      category: undefined,
+      is_active: undefined,
+      is_featured: undefined,
+      sortBy: undefined,
+      sortOrder: undefined
+    });
+
+    // Collect all tags
+    const allTags: string[] = [];
+    for (const product of result.products) {
+      if (product.tags && Array.isArray(product.tags)) {
+        allTags.push(...product.tags);
+      }
+    }
+
+    // Analyze tags
+    const statistics = getTagStatistics(allTags);
+    const similarTags = findSimilarTags(allTags);
+
+    res.json({
+      success: true,
+      message: 'Tag analysis completed',
+      data: {
+        statistics,
+        similarTags: similarTags.map(group => ({
+          ...group,
+          count: group.originals.length
+        })),
+        recommendations: {
+          canNormalize: similarTags.length > 0,
+          potentialSavings: statistics.total - statistics.normalized,
+          suggestedActions: similarTags.slice(0, 5).map(group => ({
+            action: `Merge [${group.originals.join(', ')}] into "${group.suggestion}"`,
+            impact: `Will affect ${group.originals.length} tag instances`
+          }))
+        }
+      }
+    });
+  } catch (error) {
+    logger.error('Tag analysis error:', error);
+    next(error);
+  }
+});
+
+/**
+ * Normalize tags for all products in a store
+ * POST /api/v1/products/tags/normalize
+ */
+router.post('/tags/normalize', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { store_id, dry_run = true } = req.body;
+    
+    if (!store_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'store_id is required'
+      });
+    }
+
+    // Get all products for the store
+    const result = await ProductService.getProducts({
+      store_id: store_id,
+      search: undefined,
+      category: undefined,
+      is_active: undefined,
+      is_featured: undefined,
+      sortBy: undefined,
+      sortOrder: undefined
+    });
+
+    let updatedCount = 0;
+    const updates: Array<{
+      productId: string;
+      sku: string;
+      originalTags: string[];
+      normalizedTags: string[];
+    }> = [];
+
+    if (!dry_run) {
+      // Perform actual updates
+      for (const product of result.products) {
+        if (product.tags && Array.isArray(product.tags) && product.tags.length > 0) {
+          const originalTags = [...product.tags];
+          const normalizedTags = cleanTagsForStorage(product.tags);
+          
+          // Only update if tags actually changed
+          if (JSON.stringify(originalTags.sort()) !== JSON.stringify(normalizedTags.sort())) {
+            await ProductService.updateProduct(product._id.toString(), { tags: normalizedTags });
+            updatedCount++;
+            
+            updates.push({
+              productId: product._id.toString(),
+              sku: product.sku,
+              originalTags,
+              normalizedTags
+            });
+          }
+        }
+      }
+    } else {
+      // Dry run - just show what would be updated
+      for (const product of result.products) {
+        if (product.tags && Array.isArray(product.tags) && product.tags.length > 0) {
+          const originalTags = [...product.tags];
+          const normalizedTags = cleanTagsForStorage(product.tags);
+          
+          if (JSON.stringify(originalTags.sort()) !== JSON.stringify(normalizedTags.sort())) {
+            updates.push({
+              productId: product._id.toString(),
+              sku: product.sku,
+              originalTags,
+              normalizedTags
+            });
+          }
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: dry_run ? 'Tag normalization preview completed' : 'Tag normalization completed',
+      data: {
+        dryRun: dry_run,
+        totalProducts: result.products.length,
+        productsUpdated: updatedCount,
+        updatesPreview: updates.slice(0, 10), // Show first 10 updates
+        totalUpdates: updates.length
+      }
+    });
+  } catch (error) {
+    logger.error('Tag normalization error:', error);
     next(error);
   }
 });

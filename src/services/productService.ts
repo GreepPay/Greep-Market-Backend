@@ -3,6 +3,7 @@ import { ProductPriceHistory } from '../models/ProductPriceHistory';
 import { CloudinaryService } from '../config/cloudinary';
 import { logger } from '../utils/logger';
 import { CustomError, validationError } from '../middleware/errorHandler';
+import { cleanTagsForStorage } from '../utils/tagFormatter';
 
 export interface CreateProductData {
   name: string;
@@ -83,10 +84,14 @@ export class ProductService {
       // Remove images from productData before creating the product
       const { images, ...productDataWithoutImages } = productData;
       
-      const product = new Product({
+      // Clean tags before saving
+      const cleanedProductData = {
         ...productDataWithoutImages,
+        tags: productDataWithoutImages.tags ? cleanTagsForStorage(productDataWithoutImages.tags) : [],
         images: processedImages,
-      });
+      };
+      
+      const product = new Product(cleanedProductData);
       
       await product.save();
 
@@ -338,6 +343,16 @@ export class ProductService {
       logger.error('Get product by barcode error:', error);
       throw error;
     }
+  }
+
+  /**
+   * Format product response to ensure clean tags
+   */
+  static formatProductResponse(product: IProduct): any {
+    return {
+      ...product.toObject(),
+      tags: product.tags ? cleanTagsForStorage(product.tags) : [],
+    };
   }
 
   /**

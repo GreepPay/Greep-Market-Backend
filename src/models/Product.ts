@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { cleanTagsForStorage } from '../utils/tagFormatter';
 
 export interface IProduct extends Document {
   name: string;
@@ -190,9 +191,27 @@ productSchema.index({ is_active: 1 });
 productSchema.index({ is_featured: 1 });
 productSchema.index({ created_at: -1 });
 
-// Update the updated_at field before saving
+// Update the updated_at field and normalize tags before saving
 productSchema.pre('save', function(next) {
   this.updated_at = new Date();
+  
+  // Clean and normalize tags to prevent JSON array issues
+  if (this.tags && Array.isArray(this.tags)) {
+    this.tags = cleanTagsForStorage(this.tags);
+  }
+  
+  next();
+});
+
+// Pre-update middleware to clean and normalize tags in bulk operations
+productSchema.pre(['updateOne', 'findOneAndUpdate', 'updateMany'], function(next) {
+  const update = this.getUpdate() as any;
+  if (update && update.tags && Array.isArray(update.tags)) {
+    update.tags = cleanTagsForStorage(update.tags);
+  }
+  if (update && update.$set && update.$set.tags && Array.isArray(update.$set.tags)) {
+    update.$set.tags = cleanTagsForStorage(update.$set.tags);
+  }
   next();
 });
 
