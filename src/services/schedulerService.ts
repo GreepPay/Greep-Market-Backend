@@ -1,9 +1,11 @@
 import cron from 'node-cron';
 import { MilestoneService } from './milestoneService';
 import { NotificationService } from './notificationService';
+import { DailyLoginService } from './dailyLoginService';
 import { logger } from '../utils/logger';
 import { getStoreTimezone } from '../utils/timezone';
 import { DateTime } from 'luxon';
+import { maintenanceCleanup } from '../scripts/maintenanceCleanup';
 
 export class SchedulerService {
   private static isInitialized = false;
@@ -156,15 +158,32 @@ export class SchedulerService {
    */
   private static async performCleanup(): Promise<void> {
     try {
-      // Clean up old notifications (older than 30 days)
-      const deletedCount = await NotificationService.deleteOldNotifications(30);
+      logger.info('Starting comprehensive maintenance cleanup...');
       
-      // Clean up expired notifications
-      const expiredCount = await NotificationService.cleanupExpiredNotifications();
-
-      logger.info(`Cleanup completed: ${deletedCount} old notifications, ${expiredCount} expired notifications deleted`);
+      // Run the comprehensive maintenance cleanup
+      await maintenanceCleanup();
+      
+      logger.info('Maintenance cleanup completed successfully');
     } catch (error) {
-      logger.error('Error performing cleanup:', error);
+      logger.error('Error performing maintenance cleanup:', error);
+      
+      // Fallback to basic cleanup if comprehensive cleanup fails
+      try {
+        logger.info('Running fallback basic cleanup...');
+        
+        // Clean up old notifications (older than 30 days)
+        const deletedCount = await NotificationService.deleteOldNotifications(30);
+        
+        // Clean up expired notifications
+        const expiredCount = await NotificationService.cleanupExpiredNotifications();
+
+        // Clean up old daily login records
+        DailyLoginService.cleanupOldRecords();
+
+        logger.info(`Fallback cleanup completed: ${deletedCount} old notifications, ${expiredCount} expired notifications deleted, old login records cleaned`);
+      } catch (fallbackError) {
+        logger.error('Fallback cleanup also failed:', fallbackError);
+      }
     }
   }
 

@@ -6,6 +6,7 @@ import { cache, cacheKeys, cacheConfig } from '../config/redis';
 import { config } from '../config/app';
 import { logger } from '../utils/logger';
 import { CustomError, unauthorizedError, validationError } from '../middleware/errorHandler';
+import { DailyLoginService } from './dailyLoginService';
 
 // User interface is now imported from models/User.ts
 
@@ -115,6 +116,19 @@ class AuthService {
 
       // Update last login
       await this.updateLastLogin(user.id);
+
+      // Handle daily login notification (check if first login of the day)
+      try {
+        const storeId = user.store_id || 'default-store';
+        const isFirstLoginToday = await DailyLoginService.handleDailyLogin(user.id, storeId);
+        
+        if (isFirstLoginToday) {
+          logger.info(`Good morning notification sent to user: ${email}`);
+        }
+      } catch (notificationError) {
+        // Don't fail login if notification fails
+        logger.error('Error handling daily login notification:', notificationError);
+      }
 
       // Generate tokens
       const tokens = await this.generateTokens(user);
