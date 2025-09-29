@@ -84,16 +84,20 @@ async function fixFakeNotifications() {
         console.log('   • The milestone service was using in-memory storage that got reset on server restart');
         console.log('   • This caused the system to think all milestones were "new" and send fake notifications');
         console.log('   • The system now uses persistent database storage for milestone tracking');
+        console.log('   • The scheduler has been modified to skip milestone checks for default users');
         console.log('   • All fake notifications have been cleared\n');
 
         console.log('🚀 NEXT STEPS:');
         console.log('   1. Restart your server to apply the fixes');
         console.log('   2. The milestone system will now work correctly with persistent tracking');
         console.log('   3. New milestone notifications will only be sent when milestones are actually reached');
-        console.log('   4. You can use the new API endpoints to manage notifications:');
+        console.log('   4. The scheduler has been modified to prevent fake notifications from default users');
+        console.log('   5. You can use the new API endpoints to manage notifications:');
         console.log('      - DELETE /api/v1/notifications/clear-all (clear all notifications)');
         console.log('      - DELETE /api/v1/notifications/clear-by-type/:type (clear by type)');
-        console.log('      - POST /api/v1/notifications/reset-milestone-tracking (reset tracking data)\n');
+        console.log('      - POST /api/v1/notifications/reset-milestone-tracking (reset tracking data)');
+        console.log('      - POST /api/v1/notifications/disable-scheduler (disable scheduler tasks)');
+        console.log('      - GET /api/v1/notifications/scheduler-status (check scheduler status)\n');
 
         console.log('✨ The notification system is now fixed and ready to use!');
 

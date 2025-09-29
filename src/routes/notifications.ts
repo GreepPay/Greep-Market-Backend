@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { NotificationService } from '../services/notificationService';
 import { MilestoneService } from '../services/milestoneService';
+import { SchedulerService } from '../services/schedulerService';
 import { logger } from '../utils/logger';
 
 const router = Router();
@@ -341,6 +342,70 @@ router.get('/milestone-tracking-status', asyncHandler(async (req: Request, res: 
     res.status(500).json({
       success: false,
       message: 'Failed to get milestone tracking status',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}));
+
+/**
+ * @route   POST /api/v1/notifications/disable-scheduler
+ * @desc    Disable scheduler to prevent fake notifications
+ * @access  Private
+ */
+router.post('/disable-scheduler', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { disable_milestones, disable_daily_summaries } = req.body;
+
+    if (disable_milestones) {
+      SchedulerService.disableMilestoneChecks();
+    }
+
+    if (disable_daily_summaries) {
+      SchedulerService.disableDailySummaries();
+    }
+
+    const status = SchedulerService.getStatus();
+
+    res.json({
+      success: true,
+      message: 'Scheduler tasks disabled successfully',
+      data: {
+        scheduler_status: status,
+        disabled_milestones: disable_milestones || false,
+        disabled_daily_summaries: disable_daily_summaries || false
+      }
+    });
+  } catch (error) {
+    logger.error('Error disabling scheduler:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to disable scheduler',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}));
+
+/**
+ * @route   GET /api/v1/notifications/scheduler-status
+ * @desc    Get scheduler status
+ * @access  Private
+ */
+router.get('/scheduler-status', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const status = SchedulerService.getStatus();
+
+    res.json({
+      success: true,
+      data: {
+        scheduler_status: status,
+        message: 'Check the status of each scheduled task'
+      }
+    });
+  } catch (error) {
+    logger.error('Error getting scheduler status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get scheduler status',
       error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
