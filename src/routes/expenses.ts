@@ -18,11 +18,11 @@ router.use(authenticate);
  */
 router.get('/', [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+  query('limit').optional().isInt({ min: 1, max: 1000 }).withMessage('Limit must be between 1 and 1000'),
   query('category').optional().isIn(['food', 'supplies', 'utilities', 'equipment', 'maintenance', 'other']),
   query('payment_method').optional().isIn(['cash', 'isbank', 'naira', 'card', 'transfer', 'other']),
-  query('start_date').optional().isISO8601().withMessage('Start date must be a valid date'),
-  query('end_date').optional().isISO8601().withMessage('End date must be a valid date'),
+  query('start_date').optional().isDate().withMessage('Start date must be a valid date'),
+  query('end_date').optional().isDate().withMessage('End date must be a valid date'),
   query('search').optional().isString().withMessage('Search must be a string'),
 ], asyncHandler(async (req: Request, res: Response) => {
   try {
@@ -82,8 +82,8 @@ router.get('/', [
  * @access  Private
  */
 router.get('/stats', [
-  query('start_date').optional().isISO8601().withMessage('Start date must be a valid date'),
-  query('end_date').optional().isISO8601().withMessage('End date must be a valid date'),
+  query('start_date').optional().isDate().withMessage('Start date must be a valid date'),
+  query('end_date').optional().isDate().withMessage('End date must be a valid date'),
 ], asyncHandler(async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
@@ -202,7 +202,7 @@ router.get('/:id', [
  */
 router.post('/', [
   // Remove store_id validation since we'll set it automatically from the authenticated user
-  body('date').isISO8601().withMessage('Date must be a valid date'),
+  body('date').isDate().withMessage('Date must be a valid date'),
   body('product_name').notEmpty().trim().withMessage('Product name is required'),
   body('unit').isIn(['pieces', 'kgs', 'liters', 'boxes', 'packets', 'other']).withMessage('Invalid unit'),
   body('quantity').isFloat({ min: 0 }).withMessage('Quantity must be a positive number'),
@@ -262,7 +262,7 @@ router.post('/', [
  */
 router.put('/:id', [
   param('id').isMongoId().withMessage('Invalid expense ID'),
-  body('date').optional().isISO8601().withMessage('Date must be a valid date'),
+  body('date').optional().isDate().withMessage('Date must be a valid date'),
   body('product_name').optional().notEmpty().trim().withMessage('Product name cannot be empty'),
   body('unit').optional().isIn(['pieces', 'kgs', 'liters', 'boxes', 'packets', 'other']).withMessage('Invalid unit'),
   body('quantity').optional().isFloat({ min: 0 }).withMessage('Quantity must be a positive number'),

@@ -31,7 +31,8 @@
     "test:env": "node scripts/test-env.js",
     "create:store": "node scripts/create-default-store.js",
     "verify:store": "node scripts/verify-store.js",
-    "fix:notifications": "node scripts/fix-fake-notifications.js"
+    "fix:notifications": "node scripts/fix-fake-notifications.js",
+    "test:expenses": "node test-expenses-api.js"
   },
   "keywords": [
     "market-management",
