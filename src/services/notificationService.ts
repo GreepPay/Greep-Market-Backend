@@ -470,4 +470,39 @@ export class NotificationService {
       throw error;
     }
   }
+
+  /**
+   * Delete all notifications for a user
+   */
+  static async deleteAllNotifications(userId: string): Promise<number> {
+    try {
+      const result = await Notification.deleteMany({
+        user_id: userId
+      });
+
+      logger.info(`Deleted ${result.deletedCount} notifications for user ${userId}`);
+      return result.deletedCount;
+    } catch (error) {
+      logger.error('Error deleting all notifications:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete notifications by type for a user
+   */
+  static async deleteNotificationsByType(userId: string, type: string): Promise<number> {
+    try {
+      const result = await Notification.deleteMany({
+        user_id: userId,
+        type: type
+      });
+
+      logger.info(`Deleted ${result.deletedCount} ${type} notifications for user ${userId}`);
+      return result.deletedCount;
+    } catch (error) {
+      logger.error(`Error deleting ${type} notifications:`, error);
+      throw error;
+    }
+  }
 }

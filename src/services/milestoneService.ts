@@ -4,6 +4,7 @@ import { AnalyticsService } from './analyticsService';
 import { logger } from '../utils/logger';
 import { getStoreTimezone } from '../utils/timezone';
 import { DateTime } from 'luxon';
+import mongoose from 'mongoose';
 
 export interface MilestoneConfig {
   daily_sales_milestones: number[];
@@ -19,10 +20,28 @@ export interface GoalConfig {
   daily_customer_goal: number;
 }
 
+// Schema for persistent milestone tracking
+const milestoneTrackingSchema = new mongoose.Schema({
+  store_id: { type: String, required: true, index: true },
+  user_id: { type: String, required: true, index: true },
+  milestone_type: { 
+    type: String, 
+    enum: ['daily_sales', 'monthly_sales', 'transaction_count', 'customer_count'],
+    required: true 
+  },
+  last_checked_value: { type: Number, default: 0 },
+  last_checked_date: { type: Date, default: Date.now },
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now }
+});
+
+milestoneTrackingSchema.index({ store_id: 1, user_id: 1, milestone_type: 1 }, { unique: true });
+
+const MilestoneTracking = mongoose.model('MilestoneTracking', milestoneTrackingSchema);
+
 export class MilestoneService {
   private static milestoneConfigs: Map<string, MilestoneConfig> = new Map();
   private static goalConfigs: Map<string, GoalConfig> = new Map();
-  private static lastCheckedMilestones: Map<string, any> = new Map();
 
   /**
    * Set milestone configuration for a store
@@ -62,6 +81,56 @@ export class MilestoneService {
       daily_transaction_goal: 50,
       daily_customer_goal: 25
     };
+  }
+
+  /**
+   * Get last checked milestone value from database
+   */
+  private static async getLastCheckedValue(
+    storeId: string,
+    userId: string,
+    milestoneType: string
+  ): Promise<number> {
+    try {
+      const tracking = await MilestoneTracking.findOne({
+        store_id: storeId,
+        user_id: userId,
+        milestone_type: milestoneType
+      });
+      
+      return tracking ? tracking.last_checked_value : 0;
+    } catch (error) {
+      logger.error(`Error getting last checked value for ${milestoneType}:`, error);
+      return 0;
+    }
+  }
+
+  /**
+   * Update last checked milestone value in database
+   */
+  private static async updateLastCheckedValue(
+    storeId: string,
+    userId: string,
+    milestoneType: string,
+    value: number
+  ): Promise<void> {
+    try {
+      await MilestoneTracking.findOneAndUpdate(
+        {
+          store_id: storeId,
+          user_id: userId,
+          milestone_type: milestoneType
+        },
+        {
+          last_checked_value: value,
+          last_checked_date: new Date(),
+          updated_at: new Date()
+        },
+        { upsert: true, new: true }
+      );
+    } catch (error) {
+      logger.error(`Error updating last checked value for ${milestoneType}:`, error);
+    }
   }
 
   /**
@@ -152,14 +221,13 @@ export class MilestoneService {
         goalConfig.daily_customer_goal
       );
 
-      // Update last checked values
-      this.lastCheckedMilestones.set(`${storeId}_${userId}`, {
-        daily_sales: todaySales,
-        monthly_sales: monthSales,
-        transaction_count: todayTransactionCount,
-        customer_count: todayCustomerCount,
-        last_checked: now.toISO()
-      });
+      // Update last checked values in database
+      await Promise.all([
+        this.updateLastCheckedValue(storeId, userId, 'daily_sales', todaySales),
+        this.updateLastCheckedValue(storeId, userId, 'monthly_sales', monthSales),
+        this.updateLastCheckedValue(storeId, userId, 'transaction_count', todayTransactionCount),
+        this.updateLastCheckedValue(storeId, userId, 'customer_count', todayCustomerCount)
+      ]);
 
     } catch (error) {
       logger.error(`Error checking milestones for store ${storeId}:`, error);
@@ -177,8 +245,7 @@ export class MilestoneService {
     milestones: number[],
     goalValue: number
   ): Promise<void> {
-    const key = `${storeId}_${userId}_${milestoneType}`;
-    const lastValue = this.lastCheckedMilestones.get(key)?.value || 0;
+    const lastValue = await this.getLastCheckedValue(storeId, userId, milestoneType);
 
     // Check each milestone
     for (const milestone of milestones) {
@@ -196,11 +263,8 @@ export class MilestoneService {
       }
     }
 
-    // Update last value
-    if (!this.lastCheckedMilestones.has(key)) {
-      this.lastCheckedMilestones.set(key, {});
-    }
-    this.lastCheckedMilestones.get(key)!.value = currentValue;
+    // Update last value in database
+    await this.updateLastCheckedValue(storeId, userId, milestoneType, currentValue);
   }
 
   /**
@@ -214,8 +278,7 @@ export class MilestoneService {
     milestones: number[],
     goalValue: number
   ): Promise<void> {
-    const key = `${storeId}_${userId}_${milestoneType}`;
-    const lastValue = this.lastCheckedMilestones.get(key)?.value || 0;
+    const lastValue = await this.getLastCheckedValue(storeId, userId, milestoneType);
 
     // Check each milestone
     for (const milestone of milestones) {
@@ -233,11 +296,8 @@ export class MilestoneService {
       }
     }
 
-    // Update last value
-    if (!this.lastCheckedMilestones.has(key)) {
-      this.lastCheckedMilestones.set(key, {});
-    }
-    this.lastCheckedMilestones.get(key)!.value = currentValue;
+    // Update last value in database
+    await this.updateLastCheckedValue(storeId, userId, milestoneType, currentValue);
   }
 
   /**
@@ -380,6 +440,40 @@ export class MilestoneService {
 
     } catch (error) {
       logger.error(`Error checking achievements for store ${storeId}:`, error);
+    }
+  }
+
+  /**
+   * Reset milestone tracking for a user (useful for clearing fake notifications)
+   */
+  static async resetMilestoneTracking(storeId: string, userId: string): Promise<void> {
+    try {
+      await MilestoneTracking.deleteMany({
+        store_id: storeId,
+        user_id: userId
+      });
+
+      logger.info(`Reset milestone tracking for store ${storeId}, user ${userId}`);
+    } catch (error) {
+      logger.error(`Error resetting milestone tracking for store ${storeId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get milestone tracking status for a user
+   */
+  static async getMilestoneTrackingStatus(storeId: string, userId: string): Promise<any[]> {
+    try {
+      const tracking = await MilestoneTracking.find({
+        store_id: storeId,
+        user_id: userId
+      }).lean();
+
+      return tracking;
+    } catch (error) {
+      logger.error(`Error getting milestone tracking status for store ${storeId}:`, error);
+      throw error;
     }
   }
 }
