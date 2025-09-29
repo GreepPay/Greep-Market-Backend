@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { NotificationService } from '../services/notificationService';
+import { MilestoneService } from '../services/milestoneService';
+import { SchedulerService } from '../services/schedulerService';
 import { logger } from '../utils/logger';
 
 const router = Router();
@@ -213,6 +215,197 @@ router.post('/test-daily-summary', asyncHandler(async (req: Request, res: Respon
     res.status(500).json({
       success: false,
       message: 'Failed to create test daily summary notification',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}));
+
+/**
+ * @route   DELETE /api/v1/notifications/clear-all
+ * @desc    Delete all notifications for the user
+ * @access  Private
+ */
+router.delete('/clear-all', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.id;
+
+    const deletedCount = await NotificationService.deleteAllNotifications(userId);
+
+    res.json({
+      success: true,
+      message: `Deleted ${deletedCount} notifications`,
+      data: {
+        deleted_count: deletedCount
+      }
+    });
+  } catch (error) {
+    logger.error('Error clearing all notifications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clear notifications',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}));
+
+/**
+ * @route   DELETE /api/v1/notifications/clear-by-type/:type
+ * @desc    Delete notifications by type for the user
+ * @access  Private
+ */
+router.delete('/clear-by-type/:type', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.id;
+    const { type } = req.params;
+
+    // Validate notification type
+    const validTypes = ['milestone', 'daily_summary', 'goal_reminder', 'achievement', 'system'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid notification type. Must be one of: ${validTypes.join(', ')}`
+      });
+    }
+
+    const deletedCount = await NotificationService.deleteNotificationsByType(userId, type);
+
+    res.json({
+      success: true,
+      message: `Deleted ${deletedCount} ${type} notifications`,
+      data: {
+        deleted_count: deletedCount,
+        type: type
+      }
+    });
+  } catch (error) {
+    logger.error('Error clearing notifications by type:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clear notifications by type',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}));
+
+/**
+ * @route   POST /api/v1/notifications/reset-milestone-tracking
+ * @desc    Reset milestone tracking data (fixes fake notifications issue)
+ * @access  Private
+ */
+router.post('/reset-milestone-tracking', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.id;
+    const storeId = (req as any).user.store_id || 'default-store';
+
+    await MilestoneService.resetMilestoneTracking(storeId, userId);
+
+    res.json({
+      success: true,
+      message: 'Milestone tracking data reset successfully. This will prevent fake milestone notifications.',
+      data: {
+        store_id: storeId,
+        user_id: userId
+      }
+    });
+  } catch (error) {
+    logger.error('Error resetting milestone tracking:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset milestone tracking',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}));
+
+/**
+ * @route   GET /api/v1/notifications/milestone-tracking-status
+ * @desc    Get milestone tracking status for debugging
+ * @access  Private
+ */
+router.get('/milestone-tracking-status', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.id;
+    const storeId = (req as any).user.store_id || 'default-store';
+
+    const trackingStatus = await MilestoneService.getMilestoneTrackingStatus(storeId, userId);
+
+    res.json({
+      success: true,
+      data: {
+        store_id: storeId,
+        user_id: userId,
+        tracking_records: trackingStatus
+      }
+    });
+  } catch (error) {
+    logger.error('Error getting milestone tracking status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get milestone tracking status',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}));
+
+/**
+ * @route   POST /api/v1/notifications/disable-scheduler
+ * @desc    Disable scheduler to prevent fake notifications
+ * @access  Private
+ */
+router.post('/disable-scheduler', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { disable_milestones, disable_daily_summaries } = req.body;
+
+    if (disable_milestones) {
+      SchedulerService.disableMilestoneChecks();
+    }
+
+    if (disable_daily_summaries) {
+      SchedulerService.disableDailySummaries();
+    }
+
+    const status = SchedulerService.getStatus();
+
+    res.json({
+      success: true,
+      message: 'Scheduler tasks disabled successfully',
+      data: {
+        scheduler_status: status,
+        disabled_milestones: disable_milestones || false,
+        disabled_daily_summaries: disable_daily_summaries || false
+      }
+    });
+  } catch (error) {
+    logger.error('Error disabling scheduler:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to disable scheduler',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}));
+
+/**
+ * @route   GET /api/v1/notifications/scheduler-status
+ * @desc    Get scheduler status
+ * @access  Private
+ */
+router.get('/scheduler-status', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const status = SchedulerService.getStatus();
+
+    res.json({
+      success: true,
+      data: {
+        scheduler_status: status,
+        message: 'Check the status of each scheduled task'
+      }
+    });
+  } catch (error) {
+    logger.error('Error getting scheduler status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get scheduler status',
       error: error instanceof Error ? error.message : 'Unknown error'
     });
   }

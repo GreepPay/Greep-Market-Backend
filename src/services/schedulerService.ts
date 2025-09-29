@@ -106,8 +106,12 @@ export class SchedulerService {
    */
   private static async sendDailySummaries(timeOfDay: 'evening' | 'late_evening'): Promise<void> {
     try {
-      // For now, we'll use a default store and user
-      // In a real implementation, you'd fetch all active stores and their users
+      // TODO: In a real implementation, you'd fetch all active stores and their users
+      // For now, we'll skip daily summaries for default/test users to prevent fake notifications
+      logger.info(`Skipping daily summary for ${timeOfDay} - no real users configured yet`);
+      
+      // Uncomment and modify this when you have real users:
+      /*
       const defaultStoreId = 'default-store';
       const defaultUserId = 'default-user';
 
@@ -120,8 +124,9 @@ export class SchedulerService {
       }
 
       await MilestoneService.triggerDailySummary(defaultStoreId, defaultUserId);
+      */
 
-      logger.info(`Daily summary sent for ${timeOfDay}`);
+      logger.info(`Daily summary skipped for ${timeOfDay} (no real users configured)`);
     } catch (error) {
       logger.error('Error sending daily summaries:', error);
     }
@@ -132,8 +137,12 @@ export class SchedulerService {
    */
   private static async checkAllMilestones(): Promise<void> {
     try {
-      // For now, we'll use a default store and user
-      // In a real implementation, you'd fetch all active stores and their users
+      // TODO: In a real implementation, you'd fetch all active stores and their users
+      // For now, we'll skip milestone checks for default/test users to prevent fake notifications
+      logger.info('Skipping milestone checks - no real users configured yet');
+      
+      // Uncomment and modify this when you have real users:
+      /*
       const defaultStoreId = 'default-store';
       const defaultUserId = 'default-user';
 
@@ -146,8 +155,9 @@ export class SchedulerService {
       }
 
       await MilestoneService.checkMilestones(defaultStoreId, defaultUserId);
+      */
 
-      logger.info('Milestone checks completed');
+      logger.info('Milestone checks completed (skipped for default users)');
     } catch (error) {
       logger.error('Error checking milestones:', error);
     }
@@ -228,6 +238,38 @@ export class SchedulerService {
     this.isInitialized = false;
     
     logger.info('All scheduled tasks stopped');
+  }
+
+  /**
+   * Stop specific scheduled task
+   */
+  static stopTask(taskName: string): boolean {
+    const task = this.scheduledTasks.get(taskName);
+    if (task) {
+      task.stop();
+      this.scheduledTasks.delete(taskName);
+      logger.info(`Stopped specific task: ${taskName}`);
+      return true;
+    }
+    logger.warn(`Task not found: ${taskName}`);
+    return false;
+  }
+
+  /**
+   * Disable milestone checks (useful for preventing fake notifications)
+   */
+  static disableMilestoneChecks(): void {
+    this.stopTask('milestone_checks');
+    logger.info('Milestone checks disabled to prevent fake notifications');
+  }
+
+  /**
+   * Disable daily summaries (useful for preventing fake notifications)
+   */
+  static disableDailySummaries(): void {
+    this.stopTask('evening_summary');
+    this.stopTask('late_evening_summary');
+    logger.info('Daily summaries disabled to prevent fake notifications');
   }
 
   /**
