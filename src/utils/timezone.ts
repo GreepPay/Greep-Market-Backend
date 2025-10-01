@@ -84,15 +84,40 @@ function parseDateInTimezone(
   timezone: string, 
   boundary: 'start' | 'end'
 ): Date {
-  // Parse the date string (YYYY-MM-DD format)
-  const [year, month, day] = dateStr.split('-').map(Number);
-  
-  if (boundary === 'start') {
-    // Start of day in the target timezone
-    return new Date(year, month - 1, day, 0, 0, 0, 0);
-  } else {
-    // End of day in the target timezone
-    return new Date(year, month - 1, day, 23, 59, 59, 999);
+  try {
+    // Parse the date string (YYYY-MM-DD format)
+    const [year, month, day] = dateStr.split('-').map(Number);
+    
+    // Validate the date components
+    if (isNaN(year) || isNaN(month) || isNaN(day) || 
+        year < 1900 || year > 2100 || 
+        month < 1 || month > 12 || 
+        day < 1 || day > 31) {
+      throw new Error(`Invalid date components: ${year}-${month}-${day}`);
+    }
+    
+    if (boundary === 'start') {
+      // Start of day in the target timezone
+      const date = new Date(year, month - 1, day, 0, 0, 0, 0);
+      if (isNaN(date.getTime())) {
+        throw new Error(`Invalid date: ${year}-${month}-${day}`);
+      }
+      return date;
+    } else {
+      // End of day in the target timezone
+      const date = new Date(year, month - 1, day, 23, 59, 59, 999);
+      if (isNaN(date.getTime())) {
+        throw new Error(`Invalid date: ${year}-${month}-${day}`);
+      }
+      return date;
+    }
+  } catch (error) {
+    logger.error(`Error parsing date in timezone: ${error instanceof Error ? error.message : String(error)}`, {
+      dateStr,
+      timezone,
+      boundary
+    });
+    throw error;
   }
 }
 
