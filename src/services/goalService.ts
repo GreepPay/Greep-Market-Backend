@@ -345,7 +345,7 @@ export class GoalService {
     const periodDuration = data.period_end.getTime() - data.period_start.getTime();
     const oneDay = 24 * 60 * 60 * 1000;
     const oneWeek = 7 * oneDay;
-    const oneMonth = 30 * oneDay;
+    const oneMonth = 31 * oneDay; // Allow up to 31 days for monthly goals
     const oneYear = 365 * oneDay;
 
     switch (data.goal_type) {
@@ -361,7 +361,7 @@ export class GoalService {
         break;
       case 'monthly':
         if (periodDuration > oneMonth) {
-          throw new Error('Monthly goals cannot exceed 30 days');
+          throw new Error('Monthly goals cannot exceed 31 days');
         }
         break;
       case 'yearly':
