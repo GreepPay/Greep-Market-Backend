@@ -3,6 +3,7 @@ import { Transaction } from '../models/Transaction';
 import { User } from '../models/User';
 import { ExpenseService } from './expenseService';
 import { logger } from '../utils/logger';
+import { cache, cacheKeys, cacheConfig } from '../config/redis';
 import { 
   parseDateRange, 
   getStoreTimezone, 
@@ -123,6 +124,20 @@ export class AnalyticsService {
       // Debug logging
       logger.info('Dashboard metrics request:', { storeId, filters });
       
+      // Create cache key based on store and filters
+      const cacheKey = cacheKeys.analytics(storeId || 'default', 'dashboard', JSON.stringify(filters || {}));
+      
+      // Try to get from cache first (5 minute TTL for dashboard metrics)
+      try {
+        const cachedMetrics = await cache.get<DashboardMetrics>(cacheKey);
+        if (cachedMetrics) {
+          logger.info('Dashboard metrics served from cache');
+          return cachedMetrics;
+        }
+      } catch (cacheError) {
+        logger.warn('Cache read failed, proceeding with database query:', cacheError);
+      }
+      
       // Log the date filter that will be applied
       const storeTimezone = getStoreTimezone(storeId);
       const dateFilter = this.getDateFilter(filters, storeTimezone);
@@ -208,37 +223,96 @@ export class AnalyticsService {
       // Monthly expenses should always use monthly date range
       const monthlyExpenseStats = await ExpenseService.getExpenseStats(storeId, monthRange.start, monthRange.end);
 
-      // Parallel queries for better performance
+      // Optimized parallel queries using aggregations for better performance
       const [
-        totalProducts,
-        lowStockProducts,
-        todayTransactions,
-        monthlyTransactions,
+        productStats,
+        transactionStats,
         recentTransactions,
         topProductsData
       ] = await Promise.all([
-        Product.countDocuments(productFilter),
-        Product.countDocuments({ 
-          ...productFilter, 
-          $expr: { $lte: ['$stock_quantity', '$min_stock_level'] }
-        }),
-        Transaction.find(todayFilter),
-        Transaction.find(monthlyFilter),
-        Transaction.find(transactionFilter).sort({ created_at: -1 }).limit(10),
+        // Single aggregation for all product metrics
+        Product.aggregate([
+          { $match: productFilter },
+          {
+            $group: {
+              _id: null,
+              totalProducts: { $sum: 1 },
+              lowStockProducts: {
+                $sum: {
+                  $cond: [
+                    { $lte: ['$stock_quantity', '$min_stock_level'] },
+                    1,
+                    0
+                  ]
+                }
+              }
+            }
+          }
+        ]),
+        
+        // Single aggregation for all transaction metrics
+        Transaction.aggregate([
+          {
+            $facet: {
+              // Total filtered transactions
+              totalStats: [
+                { $match: transactionFilter },
+                {
+                  $group: {
+                    _id: null,
+                    totalSales: { $sum: '$total_amount' },
+                    totalTransactions: { $sum: 1 }
+                  }
+                }
+              ],
+              // Today's transactions
+              todayStats: [
+                { $match: todayFilter },
+                {
+                  $group: {
+                    _id: null,
+                    todaySales: { $sum: '$total_amount' },
+                    todayTransactions: { $sum: 1 }
+                  }
+                }
+              ],
+              // Monthly transactions
+              monthlyStats: [
+                { $match: monthlyFilter },
+                {
+                  $group: {
+                    _id: null,
+                    monthlySales: { $sum: '$total_amount' },
+                    monthlyTransactions: { $sum: 1 }
+                  }
+                }
+              ]
+            }
+          }
+        ]),
+        
+        // Recent transactions (optimized with projection)
+        Transaction.find(transactionFilter)
+          .select('_id total_amount payment_method created_at')
+          .sort({ created_at: -1 })
+          .limit(10)
+          .lean(),
+          
+        // Top products
         this.getTopProducts(storeId, 5, filters)
       ]);
 
-      // Calculate totals
-      const todaySales = todayTransactions.reduce((sum, t) => sum + t.total_amount, 0);
-      const monthlySales = monthlyTransactions.reduce((sum, t) => sum + t.total_amount, 0);
-      const totalSales = await Transaction.aggregate([
-        { $match: transactionFilter },
-        { $group: { _id: null, total: { $sum: '$total_amount' } } }
-      ]);
-
-      // Calculate transaction count and average transaction value
-      const totalTransactions = await Transaction.countDocuments(transactionFilter);
-      const averageTransactionValue = totalTransactions > 0 ? (totalSales[0]?.total || 0) / totalTransactions : 0;
+      // Extract aggregated results
+      const productData = productStats[0] || { totalProducts: 0, lowStockProducts: 0 };
+      const transactionData = transactionStats[0];
+      
+      const totalSales = transactionData.totalStats[0] || { totalSales: 0, totalTransactions: 0 };
+      const todaySales = transactionData.todayStats[0] || { todaySales: 0, todayTransactions: 0 };
+      const monthlySales = transactionData.monthlyStats[0] || { monthlySales: 0, monthlyTransactions: 0 };
+      
+      const averageTransactionValue = totalSales.totalTransactions > 0 
+        ? totalSales.totalSales / totalSales.totalTransactions 
+        : 0;
 
       // Calculate growth rate (current period vs previous period)
       const growthRate = await this.calculateGrowthRate(storeId, filters);
@@ -259,25 +333,24 @@ export class AnalyticsService {
       // Calculate expense totals
       const totalExpenses = expenseStats.totalAmount;
       const monthlyExpenses = monthlyExpenseStats.totalAmount;
-      const netProfit = (totalSales[0]?.total || 0) - totalExpenses;
 
-      // Return consistent data structure
-      return {
-        totalSales: totalSales[0]?.total || 0,
-        totalTransactions,
+      // Build optimized result
+      const dashboardMetrics: DashboardMetrics = {
+        totalSales: totalSales.totalSales,
+        totalTransactions: totalSales.totalTransactions,
         averageTransactionValue,
         growthRate,
         salesVsYesterday: vsYesterdayMetrics.salesVsYesterday,
         expensesVsYesterday: vsYesterdayMetrics.expensesVsYesterday,
         profitVsYesterday: vsYesterdayMetrics.profitVsYesterday,
         transactionsVsYesterday: vsYesterdayMetrics.transactionsVsYesterday,
-        totalProducts,
-        lowStockItems: lowStockProducts,
-        todaySales: todaySales,
-        monthlySales: monthlySales,
+        totalProducts: productData.totalProducts,
+        lowStockItems: productData.lowStockProducts,
+        todaySales: todaySales.todaySales,
+        monthlySales: monthlySales.monthlySales,
         totalExpenses,
         monthlyExpenses,
-        netProfit,
+        netProfit: totalSales.totalSales - totalExpenses,
         topProducts: topProductsData,
         recentTransactions: recentTransactions.map(t => ({
           id: t._id.toString(),
@@ -287,6 +360,16 @@ export class AnalyticsService {
         })),
         salesByMonth: salesByPeriod
       };
+
+      // Cache the result (5 minute TTL for dashboard metrics)
+      try {
+        await cache.set(cacheKey, dashboardMetrics, 300); // 5 minutes
+        logger.info('Dashboard metrics cached successfully');
+      } catch (cacheError) {
+        logger.warn('Failed to cache dashboard metrics:', cacheError);
+      }
+
+      return dashboardMetrics;
     } catch (error) {
       logger.error('Error getting dashboard metrics:', error);
       throw error;
