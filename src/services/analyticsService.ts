@@ -38,6 +38,7 @@ export interface DashboardMetrics {
   totalExpenses: number;
   monthlyExpenses: number;
   netProfit: number;
+  paymentMethods?: { [method: string]: number };
   topProducts: Array<{
     productId: string;
     productName: string;
@@ -334,6 +335,14 @@ export class AnalyticsService {
       const totalExpenses = expenseStats.totalAmount;
       const monthlyExpenses = monthlyExpenseStats.totalAmount;
 
+      // Calculate payment methods breakdown from recent transactions
+      const paymentMethodsData: { [method: string]: number } = {};
+      recentTransactions.forEach(transaction => {
+        const method = transaction.payment_method || 'unknown';
+        const amount = transaction.total_amount || 0;
+        paymentMethodsData[method] = (paymentMethodsData[method] || 0) + amount;
+      });
+
       // Build optimized result
       const dashboardMetrics: DashboardMetrics = {
         totalSales: totalSales.totalSales,
@@ -352,6 +361,7 @@ export class AnalyticsService {
         monthlyExpenses,
         netProfit: totalSales.totalSales - totalExpenses,
         topProducts: topProductsData,
+        paymentMethods: paymentMethodsData,
         recentTransactions: recentTransactions.map(t => ({
           id: t._id.toString(),
           totalAmount: t.total_amount,

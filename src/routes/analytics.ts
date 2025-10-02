@@ -99,6 +99,15 @@ router.get('/dashboard', dashboardRateLimit, asyncHandler(async (req: Request, r
       data: metrics,
     };
     
+    // Debug logging for frontend troubleshooting
+    logger.info('Dashboard API Response Debug:', {
+      hasRecentTransactions: !!metrics.recentTransactions,
+      recentTransactionsCount: metrics.recentTransactions?.length || 0,
+      sampleTransaction: metrics.recentTransactions?.[0] || null,
+      hasPaymentMethods: !!metrics.paymentMethods,
+      paymentMethodsData: metrics.paymentMethods || null
+    });
+    
     // Cache the response for request deduplication
     requestCache.set(cacheKey, { response, timestamp: now });
     
