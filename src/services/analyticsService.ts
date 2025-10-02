@@ -571,9 +571,9 @@ export class AnalyticsService {
           {
             $group: {
               _id: '$items.product_id',
-              productName: { $first: '$items.name' },
+              productName: { $first: '$items.product_name' },
               quantitySold: { $sum: '$items.quantity' },
-              revenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
+              revenue: { $sum: { $multiply: ['$items.quantity', '$items.unit_price'] } }
             }
           },
           { $sort: { revenue: -1 } },
