@@ -6,6 +6,7 @@ import { AuditService } from '../services/auditService';
 import { User } from '../models/User';
 import { authenticate } from '../middleware/auth';
 import { asyncHandler, validationError } from '../middleware/errorHandler';
+import { authDatabaseHealthCheck } from '../middleware/databaseHealth';
 import { logger } from '../utils/logger';
 
 const router = Router();
@@ -68,7 +69,7 @@ const changePasswordValidation = [
  * @desc    Register a new user
  * @access  Public (in production, this should be restricted)
  */
-router.post('/register', registerValidation, asyncHandler(async (req, res) => {
+router.post('/register', registerValidation, authDatabaseHealthCheck, asyncHandler(async (req, res) => {
   // Check validation errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -107,7 +108,7 @@ router.post('/register', registerValidation, asyncHandler(async (req, res) => {
  * @desc    Login user
  * @access  Public
  */
-router.post('/login', loginValidation, asyncHandler(async (req, res) => {
+router.post('/login', loginValidation, authDatabaseHealthCheck, asyncHandler(async (req, res) => {
   // Check validation errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {

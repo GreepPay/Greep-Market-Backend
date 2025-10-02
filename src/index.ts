@@ -6,11 +6,12 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 
 import { config } from './config/app';
-import { testConnection, closeDatabaseConnections } from './config/database';
+import { initializeDatabase, closeDatabaseConnections, getConnectionStatus } from './config/database';
 // import { testRedisConnection, closeRedisConnection } from './config/redis';
 import { logger, morganStream } from './utils/logger';
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
+import { databaseHealthCheck } from './middleware/databaseHealth';
 // import { requestMonitoring, performanceMonitoring, errorMonitoring } from './middleware/monitoring';
 
 // Import routes
@@ -137,14 +138,21 @@ class App {
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-    // Health check endpoint
+    // Database health check middleware (applied to all routes except health endpoint)
+    this.app.use(databaseHealthCheck);
+
+    // Health check endpoint with database status
     this.app.get('/health', (req, res) => {
-      res.status(200).json({
-        status: 'OK',
+      const dbStatus = getConnectionStatus();
+      const isHealthy = dbStatus.isHealthy;
+      
+      res.status(isHealthy ? 200 : 503).json({
+        status: isHealthy ? 'OK' : 'UNHEALTHY',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         environment: config.app.env,
         version: config.app.version,
+        database: dbStatus,
       });
     });
 
@@ -237,11 +245,12 @@ class App {
 
   public async start(): Promise<void> {
     try {
-      // Test database connection
-      const dbConnected = await testConnection();
-      if (!dbConnected) {
-        throw new Error('Database connection failed');
-      }
+      logger.info('🚀 Starting server initialization...');
+      
+      // Initialize database with robust connection handling
+      logger.info('🔄 Initializing database connection...');
+      await initializeDatabase();
+      logger.info('✅ Database initialization completed');
 
       // Test Redis connection (disabled)
       // const redisConnected = await testRedisConnection();
@@ -255,15 +264,28 @@ class App {
         logger.info(`📚 API Documentation: http://localhost:${config.app.port}/api/docs`);
         logger.info(`🏥 Health Check: http://localhost:${config.app.port}/health`);
         logger.info(`🌍 Environment: ${config.app.env}`);
+        logger.info(`💾 Database Status: ${getConnectionStatus().status}`);
         
         // Start cron jobs
+        logger.info('🔄 Starting cron jobs...');
         CronService.startAllJobs();
         
         // Start notification scheduler
+        logger.info('🔄 Initializing notification scheduler...');
         SchedulerService.initialize();
+        
+        logger.info('🎉 Server startup completed successfully!');
       });
     } catch (error) {
-      logger.error('Failed to start server:', error);
+      logger.error('❌ Failed to start server:', error);
+      logger.error('🔄 Attempting graceful shutdown...');
+      
+      try {
+        await closeDatabaseConnections();
+      } catch (closeError) {
+        logger.error('❌ Error during graceful shutdown:', closeError);
+      }
+      
       process.exit(1);
     }
   }
