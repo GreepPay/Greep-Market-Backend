@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import { authenticate, authorize } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { AnalyticsService } from '../services/analyticsService';
@@ -8,6 +9,26 @@ import { getStoreTimezone, debugTimezoneInfo } from '../utils/timezone';
 
 const router = Router();
 
+// Request deduplication cache to prevent identical requests
+const requestCache = new Map<string, { response: any; timestamp: number }>();
+const CACHE_DURATION = 2 * 1000; // 2 seconds cache for identical requests
+
+// Rate limiting for dashboard endpoint to prevent spam
+const dashboardRateLimit = rateLimit({
+  windowMs: 5 * 1000, // 5 seconds
+  max: 3, // Maximum 3 requests per 5 seconds per IP
+  message: {
+    success: false,
+    error: {
+      message: 'Too many dashboard requests. Please wait before refreshing.',
+      code: 'RATE_LIMIT_EXCEEDED'
+    }
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false, // Count all requests
+});
+
 // All routes require authentication
 router.use(authenticate);
 
@@ -16,10 +37,26 @@ router.use(authenticate);
  * @desc    Get dashboard analytics with filtering support
  * @access  Private
  */
-router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
+router.get('/dashboard', dashboardRateLimit, asyncHandler(async (req: Request, res: Response) => {
   try {
     // Use authenticated user's store_id instead of query parameter
     const storeId = (req as any).user.storeId || 'default-store';
+    
+    // Create cache key for request deduplication
+    const cacheKey = `${storeId}-${JSON.stringify(req.query)}-${req.user?.id}`;
+    const now = Date.now();
+    
+    // Check if we have a recent identical request
+    if (requestCache.has(cacheKey)) {
+      const cached = requestCache.get(cacheKey)!;
+      if (now - cached.timestamp < CACHE_DURATION) {
+        logger.info(`Returning cached response for dashboard request: ${cacheKey}`);
+        return res.json(cached.response);
+      } else {
+        // Remove expired cache entry
+        requestCache.delete(cacheKey);
+      }
+    }
     
     // Extract filter parameters
     const {
@@ -57,10 +94,24 @@ router.get('/dashboard', asyncHandler(async (req: Request, res: Response) => {
 
     const metrics = await AnalyticsService.getDashboardMetrics(storeId, filters);
     
-    res.json({
+    const response = {
       success: true,
       data: metrics,
+    };
+    
+    // Debug logging for frontend troubleshooting
+    logger.info('Dashboard API Response Debug:', {
+      hasRecentTransactions: !!metrics.recentTransactions,
+      recentTransactionsCount: metrics.recentTransactions?.length || 0,
+      sampleTransaction: metrics.recentTransactions?.[0] || null,
+      hasPaymentMethods: !!metrics.paymentMethods,
+      paymentMethodsData: metrics.paymentMethods || null
     });
+    
+    // Cache the response for request deduplication
+    requestCache.set(cacheKey, { response, timestamp: now });
+    
+    res.json(response);
   } catch (error) {
     logger.error('Error getting dashboard metrics:', error);
     res.status(500).json({
