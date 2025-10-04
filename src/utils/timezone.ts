@@ -6,7 +6,7 @@ import { logger } from './logger';
  */
 
 // Default timezone for the application (can be configured per store)
-const DEFAULT_TIMEZONE = 'Europe/Istanbul'; // GMT+3
+const DEFAULT_TIMEZONE = 'Europe/Nicosia'; // EEST (Eastern European Summer Time) GMT+3
 
 export interface DateRange {
   start: Date;

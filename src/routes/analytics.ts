@@ -11,12 +11,12 @@ const router = Router();
 
 // Request deduplication cache to prevent identical requests
 const requestCache = new Map<string, { response: any; timestamp: number }>();
-const CACHE_DURATION = 2 * 1000; // 2 seconds cache for identical requests
+const CACHE_DURATION = 5 * 1000; // 5 seconds cache for identical requests
 
 // Rate limiting for dashboard endpoint to prevent spam
 const dashboardRateLimit = rateLimit({
-  windowMs: 5 * 1000, // 5 seconds
-  max: 3, // Maximum 3 requests per 5 seconds per IP
+  windowMs: 60 * 1000, // 1 minute
+  max: 20, // Maximum 20 requests per minute per IP (more reasonable for dashboard)
   message: {
     success: false,
     error: {
