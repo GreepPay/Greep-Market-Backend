@@ -13,6 +13,7 @@ export interface CreateTransactionData {
     discount_amount?: number;
   }>;
   payment_method: 'cash' | 'pos_isbank_transfer' | 'naira_transfer' | 'crypto_payment';
+  order_source?: 'online' | 'in-store' | 'phone' | 'delivery';
   notes?: string;
   cashier_id: string;
 }
@@ -35,6 +36,7 @@ export interface TransactionResponse {
   payment_method: string;
   payment_status: string;
   status: string;
+  order_source?: string;
   cashier_id: string;
   notes?: string;
   created_at: Date;
@@ -87,6 +89,7 @@ export class TransactionService {
         payment_method: transactionData.payment_method,
         payment_status: 'pending',
         status: 'pending',
+        order_source: transactionData.order_source || 'in-store',
         cashier_id: transactionData.cashier_id,
         notes: transactionData.notes,
       });
@@ -348,6 +351,7 @@ export class TransactionService {
       discount_amount?: number;
     }>;
     payment_method?: 'cash' | 'pos_isbank_transfer' | 'naira_transfer' | 'crypto_payment';
+    order_source?: 'online' | 'in-store' | 'phone' | 'delivery';
     customer_id?: string;
     notes?: string;
   }): Promise<TransactionResponse> {
@@ -419,6 +423,9 @@ export class TransactionService {
         }
         transaction.payment_method = updateData.payment_method;
       }
+      if (updateData.order_source !== undefined) {
+        transaction.order_source = updateData.order_source;
+      }
       if (updateData.customer_id !== undefined) {
         transaction.customer_id = updateData.customer_id;
       }
@@ -480,6 +487,7 @@ export class TransactionService {
       payment_method: transaction.payment_method,
       payment_status: transaction.payment_status,
       status: transaction.status,
+      order_source: transaction.order_source,
       cashier_id: transaction.cashier_id,
       notes: transaction.notes,
       created_at: transaction.created_at,
