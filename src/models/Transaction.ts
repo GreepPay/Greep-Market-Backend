@@ -11,6 +11,7 @@ export interface ITransaction extends Document {
   payment_method: 'cash' | 'pos_isbank_transfer' | 'naira_transfer' | 'crypto_payment';
   payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
   status: 'pending' | 'completed' | 'cancelled' | 'voided';
+  order_source?: 'online' | 'in-store' | 'phone' | 'delivery';
   cashier_id: string;
   notes?: string;
   created_at: Date;
@@ -97,6 +98,11 @@ const transactionSchema = new Schema<ITransaction>({
     enum: ['pending', 'completed', 'cancelled', 'voided'],
     default: 'pending',
   },
+  order_source: {
+    type: String,
+    enum: ['online', 'in-store', 'phone', 'delivery'],
+    default: 'in-store',
+  },
   cashier_id: {
     type: String,
     required: true,
@@ -127,6 +133,7 @@ transactionSchema.index({ created_at: -1 });
 transactionSchema.index({ cashier_id: 1 });
 transactionSchema.index({ status: 1 });
 transactionSchema.index({ payment_status: 1 });
+transactionSchema.index({ order_source: 1 });
 
 // Create the model
 export const Transaction = mongoose.model<ITransaction>('Transaction', transactionSchema);

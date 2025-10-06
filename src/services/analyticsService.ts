@@ -39,6 +39,7 @@ export interface DashboardMetrics {
   monthlyExpenses: number;
   netProfit: number;
   paymentMethods?: { [method: string]: number };
+  orderSources?: { [source: string]: number };
   topProducts: Array<{
     productId: string;
     productName: string;
@@ -49,6 +50,7 @@ export interface DashboardMetrics {
     id: string;
     totalAmount: number;
     paymentMethod: string;
+    orderSource?: string;
     createdAt: Date;
   }>;
   salesByMonth: Array<{
@@ -335,12 +337,38 @@ export class AnalyticsService {
       const totalExpenses = expenseStats.totalAmount;
       const monthlyExpenses = monthlyExpenseStats.totalAmount;
 
-      // Calculate payment methods breakdown from recent transactions
+      // Calculate payment methods breakdown from ALL transactions (not just recent ones)
+      const paymentMethodsAggregation = await Transaction.aggregate([
+        { $match: transactionFilter },
+        {
+          $group: {
+            _id: '$payment_method',
+            totalAmount: { $sum: '$total_amount' }
+          }
+        }
+      ]);
+      
       const paymentMethodsData: { [method: string]: number } = {};
-      recentTransactions.forEach(transaction => {
-        const method = transaction.payment_method || 'unknown';
-        const amount = transaction.total_amount || 0;
-        paymentMethodsData[method] = (paymentMethodsData[method] || 0) + amount;
+      paymentMethodsAggregation.forEach(item => {
+        const method = item._id || 'unknown';
+        paymentMethodsData[method] = item.totalAmount;
+      });
+
+      // Calculate order sources breakdown from ALL transactions (not just recent ones)
+      const orderSourcesAggregation = await Transaction.aggregate([
+        { $match: transactionFilter },
+        {
+          $group: {
+            _id: '$order_source',
+            totalAmount: { $sum: '$total_amount' }
+          }
+        }
+      ]);
+      
+      const orderSourcesData: { [source: string]: number } = {};
+      orderSourcesAggregation.forEach(item => {
+        const source = item._id || 'in-store'; // Default to 'in-store' if null/undefined
+        orderSourcesData[source] = item.totalAmount;
       });
 
       // Build optimized result
@@ -362,10 +390,12 @@ export class AnalyticsService {
         netProfit: totalSales.totalSales - totalExpenses,
         topProducts: topProductsData,
         paymentMethods: paymentMethodsData,
+        orderSources: orderSourcesData,
         recentTransactions: recentTransactions.map(t => ({
           id: t._id.toString(),
           totalAmount: t.total_amount,
           paymentMethod: t.payment_method,
+          orderSource: t.order_source,
           createdAt: t.created_at
         })),
         salesByMonth: salesByPeriod
