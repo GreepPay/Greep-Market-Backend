@@ -57,6 +57,8 @@ export interface DashboardMetrics {
     month: string;
     sales: number;
     transactions: number;
+    onlineSales: number;
+    inStoreSales: number;
   }>;
 }
 
@@ -395,7 +397,6 @@ export class AnalyticsService {
           id: t._id.toString(),
           totalAmount: t.total_amount,
           paymentMethod: t.payment_method,
-          orderSource: t.order_source,
           createdAt: t.created_at
         })),
         salesByMonth: salesByPeriod
@@ -1108,14 +1109,38 @@ export class AnalyticsService {
             month: { $month: '$created_at' } 
           }, 
           sales: { $sum: '$total_amount' },
-          transactions: { $sum: 1 }
+          transactions: { $sum: 1 },
+          onlineSales: { 
+            $sum: { 
+              $cond: [
+                { $eq: ['$order_source', 'online'] },
+                '$total_amount',
+                0
+              ]
+            }
+          },
+          inStoreSales: { 
+            $sum: { 
+              $cond: [
+                { $or: [
+                  { $eq: ['$order_source', 'in-store'] },
+                  { $eq: ['$order_source', null] },
+                  { $eq: ['$order_source', undefined] }
+                ]},
+                '$total_amount',
+                0
+              ]
+            }
+          }
         }},
         { $sort: { '_id.year': 1, '_id.month': 1 } },
         { $limit: 12 },
         { $project: { 
-          month: { $dateToString: { format: '%Y-%m', date: { $dateFromParts: { year: '$_id.year', month: '$_id.month', day: 1 } } } },
+          month: { $dateToString: { format: '%Y-%m', date: { $dateFromParts: { year: '$_id.year', month: '$_id.month', day: 1 } } } },                          
           sales: 1, 
-          transactions: 1, 
+          transactions: 1,
+          onlineSales: 1,
+          inStoreSales: 1,
           _id: 0 
         }}
       ]);
