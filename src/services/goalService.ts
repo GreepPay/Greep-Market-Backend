@@ -1,6 +1,7 @@
 import { Goal, IGoal } from '../models/Goal';
 import { Transaction } from '../models/Transaction';
 import { logger } from '../utils/logger';
+import { getThisMonthRange, getStoreTimezone } from '../utils/timezone';
 
 export interface CreateGoalData {
   user_id: string;
@@ -71,6 +72,76 @@ export class GoalService {
       return goal;
     } catch (error) {
       logger.error('Error creating goal:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upsert a monthly goal idempotently for the given month (defaults to current month in store timezone).
+   * If a monthly goal exists overlapping the month, it will be updated; otherwise created.
+   * Any other active monthly goals overlapping the same month are deactivated.
+   */
+  static async upsertMonthlyGoal(
+    userId: string,
+    storeId: string,
+    targetAmount: number,
+    currency: string = 'TRY',
+    periodStart?: Date,
+    periodEnd?: Date
+  ): Promise<IGoal> {
+    try {
+      const timezone = getStoreTimezone(storeId);
+      const monthRange = getThisMonthRange(timezone);
+      const start = periodStart || monthRange.start;
+      const end = periodEnd || monthRange.end;
+
+      // Find existing monthly goal overlapping this month
+      const existing = await Goal.findOne({
+        user_id: userId,
+        store_id: storeId,
+        goal_type: 'monthly',
+        is_active: true,
+        period_start: { $lte: end },
+        period_end: { $gte: start }
+      });
+
+      if (existing) {
+        // Update existing goal idempotently
+        existing.target_amount = targetAmount;
+        existing.currency = currency;
+        existing.period_start = start;
+        existing.period_end = end;
+        await existing.save();
+        logger.info(`Monthly goal upsert: updated existing for ${userId}/${storeId}`);
+        return existing;
+      }
+
+      // Deactivate other active monthly goals overlapping the month, if any
+      await Goal.updateMany({
+        user_id: userId,
+        store_id: storeId,
+        goal_type: 'monthly',
+        is_active: true,
+        period_start: { $lte: end },
+        period_end: { $gte: start }
+      }, { $set: { is_active: false } });
+
+      // Create new monthly goal
+      const goal = new Goal({
+        user_id: userId,
+        store_id: storeId,
+        goal_type: 'monthly',
+        target_amount: targetAmount,
+        currency,
+        period_start: start,
+        period_end: end,
+        is_active: true
+      });
+      await goal.save();
+      logger.info(`Monthly goal upsert: created new for ${userId}/${storeId}`);
+      return goal;
+    } catch (error) {
+      logger.error('Error upserting monthly goal:', error);
       throw error;
     }
   }

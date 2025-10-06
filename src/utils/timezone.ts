@@ -56,9 +56,13 @@ export function parseDateRange(
   }
 
   try {
+    // Normalize inputs to YYYY-MM-DD in case ISO strings are provided
+    const normalizedStart = startDateStr.length > 10 ? startDateStr.slice(0, 10) : startDateStr;
+    const normalizedEnd = endDateStr.length > 10 ? endDateStr.slice(0, 10) : endDateStr;
+
     // Parse the date strings and create date objects in the target timezone
-    const startDate = parseDateInTimezone(startDateStr, timezone, 'start');
-    const endDate = parseDateInTimezone(endDateStr, timezone, 'end');
+    const startDate = parseDateInTimezone(normalizedStart, timezone, 'start');
+    const endDate = parseDateInTimezone(normalizedEnd, timezone, 'end');
     
     logger.info(`Parsed date range for ${timezone}:`, {
       startDateStr,
@@ -85,8 +89,10 @@ function parseDateInTimezone(
   boundary: 'start' | 'end'
 ): Date {
   try {
+    // If ISO string provided, trim to date portion
+    const safeDateStr = dateStr.length > 10 ? dateStr.slice(0, 10) : dateStr;
     // Parse the date string (YYYY-MM-DD format)
-    const [year, month, day] = dateStr.split('-').map(Number);
+    const [year, month, day] = safeDateStr.split('-').map(Number);
     
     // Validate the date components
     if (isNaN(year) || isNaN(month) || isNaN(day) || 

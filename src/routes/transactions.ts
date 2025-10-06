@@ -434,7 +434,8 @@ router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
       });
     }
 
-    await TransactionService.deleteTransaction(id);
+    const isAdminOrOwner = req.user && (req.user.role === 'admin' || req.user.role === 'owner');
+    await TransactionService.deleteTransaction(id, { force: !!isAdminOrOwner });
 
     // Log the transaction deletion
     await AuditService.logDelete(

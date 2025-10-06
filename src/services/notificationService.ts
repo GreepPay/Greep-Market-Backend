@@ -42,6 +42,28 @@ export class NotificationService {
         ? new Date(Date.now() + data.expires_in_hours * 60 * 60 * 1000)
         : undefined;
 
+      // Basic deduplication: avoid creating an identical high-frequency notification within 5 minutes
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const existing = await Notification.findOne({
+        user_id: data.user_id,
+        store_id: data.store_id,
+        type: data.type,
+        title: data.title,
+        message: data.message,
+        created_at: { $gte: fiveMinutesAgo }
+      }).lean();
+
+      if (existing) {
+        logger.info('Skipped duplicate notification within 5 minutes window', {
+          user_id: data.user_id,
+          store_id: data.store_id,
+          type: data.type,
+          title: data.title
+        });
+        // Return the existing one as a no-op
+        return existing as any;
+      }
+
       const notification = new Notification({
         ...data,
         expires_at: expiresAt
@@ -364,7 +386,9 @@ export class NotificationService {
   static async getUserNotifications(
     userId: string,
     limit: number = 20,
-    unreadOnly: boolean = false
+    unreadOnly: boolean = false,
+    type?: 'milestone' | 'daily_summary' | 'goal_reminder' | 'achievement' | 'system',
+    page: number = 1
   ): Promise<INotification[]> {
     try {
       const query: any = { user_id: userId };
@@ -373,8 +397,14 @@ export class NotificationService {
         query.is_read = false;
       }
 
+      if (type) {
+        query.type = type;
+      }
+
+      const skip = (page - 1) * limit;
       const notifications = await Notification.find(query)
         .sort({ created_at: -1 })
+        .skip(skip)
         .limit(limit)
         .lean();
 

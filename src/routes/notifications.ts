@@ -21,11 +21,15 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
     const limit = parseInt(req.query.limit as string) || 20;
     const unreadOnly = req.query.unread_only === 'true';
+    const type = (req.query.type as string) as any;
+    const page = parseInt(req.query.page as string) || 1;
 
     const notifications = await NotificationService.getUserNotifications(
       userId,
       limit,
-      unreadOnly
+      unreadOnly,
+      type,
+      page
     );
 
     const unreadCount = await NotificationService.getUnreadCount(userId);
@@ -35,7 +39,9 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
       data: {
         notifications,
         unread_count: unreadCount,
-        total_returned: notifications.length
+        total_returned: notifications.length,
+        page,
+        limit
       }
     });
   } catch (error) {
@@ -144,7 +150,7 @@ router.put('/read-all', asyncHandler(async (req: Request, res: Response) => {
 router.post('/test-milestone', asyncHandler(async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
-    const storeId = (req as any).user.store_id || 'default-store';
+    const storeId = (req as any).user.storeId || 'default-store';
     const { milestone_type, milestone_value, goal_percentage } = req.body;
 
     if (!milestone_type || milestone_value === undefined) {
@@ -187,7 +193,7 @@ router.post('/test-milestone', asyncHandler(async (req: Request, res: Response) 
 router.post('/test-daily-summary', asyncHandler(async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
-    const storeId = (req as any).user.store_id || 'default-store';
+    const storeId = (req as any).user.storeId || 'default-store';
     const salesData = req.body;
 
     const notification = await NotificationService.createDailySummaryNotification(
@@ -295,7 +301,7 @@ router.delete('/clear-by-type/:type', asyncHandler(async (req: Request, res: Res
 router.post('/reset-milestone-tracking', asyncHandler(async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
-    const storeId = (req as any).user.store_id || 'default-store';
+    const storeId = (req as any).user.storeId || 'default-store';
 
     await MilestoneService.resetMilestoneTracking(storeId, userId);
 
@@ -325,7 +331,7 @@ router.post('/reset-milestone-tracking', asyncHandler(async (req: Request, res: 
 router.get('/milestone-tracking-status', asyncHandler(async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
-    const storeId = (req as any).user.store_id || 'default-store';
+    const storeId = (req as any).user.storeId || 'default-store';
 
     const trackingStatus = await MilestoneService.getMilestoneTrackingStatus(storeId, userId);
 

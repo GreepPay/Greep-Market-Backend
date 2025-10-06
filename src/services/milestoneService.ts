@@ -142,12 +142,12 @@ export class MilestoneService {
       const now = DateTime.now().setZone(timezone);
       
       // Get today's data
-      const todayStart = now.startOf('day').toJSDate();
-      const todayEnd = now.endOf('day').toJSDate();
+      const todayStart = now.startOf('day').toISODate();
+      const todayEnd = now.endOf('day').toISODate();
       
       // Get this month's data
-      const monthStart = now.startOf('month').toJSDate();
-      const monthEnd = now.endOf('month').toJSDate();
+      const monthStart = now.startOf('month').toISODate();
+      const monthEnd = now.endOf('month').toISODate();
 
       // Get configuration
       const milestoneConfig = this.milestoneConfigs.get(storeId) || this.getDefaultMilestoneConfig();
@@ -158,8 +158,8 @@ export class MilestoneService {
         storeId,
         'completed',
         undefined,
-        todayStart.toISOString(),
-        todayEnd.toISOString(),
+        todayStart,
+        todayEnd,
         1,
         1000
       );
@@ -169,8 +169,8 @@ export class MilestoneService {
         storeId,
         'completed',
         undefined,
-        monthStart.toISOString(),
-        monthEnd.toISOString(),
+        monthStart,
+        monthEnd,
         1,
         10000
       );
