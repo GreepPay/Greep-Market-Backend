@@ -439,7 +439,7 @@ export class TransactionService {
   /**
    * Delete transaction
    */
-  static async deleteTransaction(transactionId: string): Promise<void> {
+  static async deleteTransaction(transactionId: string, options?: { force?: boolean }): Promise<void> {
     try {
       const transaction = await Transaction.findById(transactionId);
       if (!transaction) {
@@ -447,7 +447,7 @@ export class TransactionService {
       }
 
       // Check if transaction can be deleted (only pending transactions can be deleted)
-      if (transaction.status !== 'pending') {
+      if (!options?.force && transaction.status !== 'pending') {
         throw new Error('Only pending transactions can be deleted');
       }
 

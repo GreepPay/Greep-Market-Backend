@@ -37,7 +37,7 @@ router.use(authenticate);
  * @desc    Get dashboard analytics with filtering support
  * @access  Private
  */
-router.get('/dashboard', dashboardRateLimit, asyncHandler(async (req: Request, res: Response) => {
+router.get('/dashboard', /* dashboardRateLimit, */ asyncHandler(async (req: Request, res: Response) => {
   try {
     // Use authenticated user's store_id instead of query parameter
     const storeId = (req as any).user.storeId || 'default-store';
