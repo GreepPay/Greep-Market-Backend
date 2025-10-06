@@ -190,8 +190,20 @@ router.post('/', [
       period_end: new Date(req.body.period_end),
     };
 
-    // Create the goal
-    const goal = await GoalService.createGoal(goalData);
+    // If request is for monthly goal and overlaps current month, use idempotent upsert
+    let goal;
+    if (goalData.goal_type === 'monthly') {
+      goal = await GoalService.upsertMonthlyGoal(
+        userId,
+        storeId,
+        goalData.target_amount,
+        goalData.currency,
+        goalData.period_start,
+        goalData.period_end
+      );
+    } else {
+      goal = await GoalService.createGoal(goalData);
+    }
     
     // Log the goal creation
     await AuditService.logCreate(
