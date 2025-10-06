@@ -4,7 +4,7 @@
   "description": "Comprehensive Market Management System Backend",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "nodemon src/index.ts",
+    "dev": "npm run build && nodemon dist/index.js",
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "jest",
