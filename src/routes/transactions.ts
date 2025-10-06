@@ -71,6 +71,14 @@ router.post('/', asyncHandler(async (req, res) => {
       });
     }
 
+    // Validate order_source if provided
+    if (transactionData.order_source && !['online', 'in-store', 'phone', 'delivery'].includes(transactionData.order_source)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid order_source. Must be one of: online, in-store, phone, delivery'
+      });
+    }
+
     // Validate items array
     if (!Array.isArray(transactionData.items) || transactionData.items.length === 0) {
       return res.status(400).json({
@@ -330,6 +338,17 @@ router.put('/:id', asyncHandler(async (req: Request, res: Response) => {
         return res.status(400).json({
           success: false,
           message: `Invalid payment method. Must be one of: ${validPaymentMethods.join(', ')}`
+        });
+      }
+    }
+
+    // Validate order_source if provided
+    if (updateData.order_source) {
+      const validOrderSources = ['online', 'in-store', 'phone', 'delivery'];
+      if (!validOrderSources.includes(updateData.order_source)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid order_source. Must be one of: ${validOrderSources.join(', ')}`
         });
       }
     }
