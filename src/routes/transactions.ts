@@ -8,6 +8,40 @@ import { logger } from '../utils/logger';
 
 const router = Router();
 
+/**
+ * Normalize order source values from frontend format to backend expected format
+ * @param orderSource - The order source value from the frontend
+ * @returns Normalized order source value or null if invalid
+ */
+const normalizeOrderSource = (orderSource: string): string | null => {
+  if (!orderSource) return null;
+  
+  const normalized = orderSource.toLowerCase().replace(/\s+/g, '-');
+  
+  const validSources = ['online', 'in-store', 'phone', 'delivery'];
+  
+  // Handle common frontend variations
+  if (normalized === 'in-store' || normalized === 'instore' || orderSource.toLowerCase() === 'in-store') {
+    return 'in-store';
+  }
+  if (normalized === 'online') {
+    return 'online';
+  }
+  if (normalized === 'phone') {
+    return 'phone';
+  }
+  if (normalized === 'delivery') {
+    return 'delivery';
+  }
+  
+  // If it matches any valid source, return it
+  if (validSources.includes(normalized)) {
+    return normalized;
+  }
+  
+  return null;
+};
+
 // All transaction routes require authentication
 router.use(authenticate);
 
@@ -71,12 +105,17 @@ router.post('/', asyncHandler(async (req, res) => {
       });
     }
 
-    // Validate order_source if provided
-    if (transactionData.order_source && !['online', 'in-store', 'phone', 'delivery'].includes(transactionData.order_source)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid order_source. Must be one of: online, in-store, phone, delivery'
-      });
+    // Validate and normalize order_source if provided
+    if (transactionData.order_source) {
+      const normalizedOrderSource = normalizeOrderSource(transactionData.order_source);
+      if (!normalizedOrderSource) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid order_source. Must be one of: online, in-store, phone, delivery'
+        });
+      }
+      // Update the transaction data with the normalized value
+      transactionData.order_source = normalizedOrderSource;
     }
 
     // Validate items array
@@ -342,15 +381,17 @@ router.put('/:id', asyncHandler(async (req: Request, res: Response) => {
       }
     }
 
-    // Validate order_source if provided
+    // Validate and normalize order_source if provided
     if (updateData.order_source) {
-      const validOrderSources = ['online', 'in-store', 'phone', 'delivery'];
-      if (!validOrderSources.includes(updateData.order_source)) {
+      const normalizedOrderSource = normalizeOrderSource(updateData.order_source);
+      if (!normalizedOrderSource) {
         return res.status(400).json({
           success: false,
-          message: `Invalid order_source. Must be one of: ${validOrderSources.join(', ')}`
+          message: 'Invalid order_source. Must be one of: online, in-store, phone, delivery'
         });
       }
+      // Update the update data with the normalized value
+      updateData.order_source = normalizedOrderSource;
     }
 
     // Validate required fields if items are being updated
