@@ -164,4 +164,34 @@ router.put('/:id/settings', authorize('admin', 'owner', 'manager', 'cashier'), a
   }
 }));
 
+/**
+ * @route   GET /api/v1/stores/for-assignment
+ * @desc    Get stores for user assignment (simplified data)
+ * @access  Private
+ */
+router.get('/for-assignment', asyncHandler(async (req, res) => {
+  logger.info('Getting stores for user assignment');
+  
+  try {
+    const stores = await StoreService.getAllStores();
+    
+    // Return simplified store data for assignment dropdowns
+    const assignmentStores = stores.map(store => ({
+      id: store.id,
+      name: store.name,
+      address: store.address,
+      is_active: store.is_active
+    }));
+    
+    res.json({
+      success: true,
+      message: 'Stores for assignment retrieved successfully',
+      data: assignmentStores,
+    });
+  } catch (error) {
+    logger.error('Error getting stores for assignment:', error);
+    throw error;
+  }
+}));
+
 export default router;
