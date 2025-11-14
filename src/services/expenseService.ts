@@ -1,5 +1,6 @@
 import { Expense, IExpense } from '../models/Expense';
 import { logger } from '../utils/logger';
+import { getStoreTimezone, formatDateForTimezone } from '../utils/timezone';
 
 export interface CreateExpenseData {
   store_id: string;
@@ -77,6 +78,159 @@ export interface ExpenseStats {
 }
 
 export class ExpenseService {
+  /**
+   * Get expense time-series between dates
+   * Returns daily buckets for ranges up to 31 days, otherwise monthly buckets
+   */
+  static async getExpenseSeries(
+    startDate: Date,
+    endDate: Date,
+    storeId?: string
+  ): Promise<Array<{ period: string; amount: number; count: number }>> {
+    try {
+      const filter: any = {
+        date: { $gte: startDate, $lte: endDate }
+      };
+      if (storeId) {
+        filter.store_id = storeId;
+      }
+
+      // Debug logging
+      logger.info('ExpenseService.getExpenseSeries called with:', {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        storeId,
+        filter
+      });
+
+      const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      const isDaily = daysDiff <= 31;
+
+      if (isDaily) {
+        // Get timezone for the store to ensure correct date grouping
+        const timezone = getStoreTimezone(storeId);
+        
+        // Daily series - use timezone-aware date formatting to group by local day
+        const series = await Expense.aggregate([
+          { $match: filter },
+          {
+            $group: {
+              _id: {
+                // Format date as YYYY-MM-DD in local timezone first, then use it for grouping
+                dateString: {
+                  $dateToString: {
+                    format: '%Y-%m-%d',
+                    date: '$date',
+                    timezone: timezone
+                  }
+                }
+              },
+              amount: { $sum: '$amount' },
+              count: { $sum: 1 }
+            }
+          },
+          { $sort: { '_id.dateString': 1 } },
+          {
+            $project: {
+              _id: 0,
+              period: '$_id.dateString',
+              amount: 1,
+              count: 1
+            }
+          }
+        ]);
+
+        // Debug logging for series data
+        logger.info('Expense series aggregation result:', {
+          seriesLength: series.length,
+          series: series.slice(0, 3) // Show first 3 entries
+        });
+
+        // Ensure all days exist in the range (fill gaps with 0)
+        const map: Record<string, { amount: number; count: number }> = {};
+        series.forEach(s => { map[s.period] = { amount: s.amount, count: s.count }; });
+        const filled: Array<{ period: string; amount: number; count: number }> = [];
+        
+        // Create proper date range that includes all days from start to end
+        // Convert to local dates to avoid timezone issues
+        const startLocal = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+        const endLocal = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        
+        const cursor = new Date(startLocal);
+        const end = new Date(endLocal);
+        
+        // Debug logging for date range
+        logger.info('Expense series date range debug:', {
+          originalStartDate: startDate.toISOString(),
+          originalEndDate: endDate.toISOString(),
+          startLocal: startLocal.toISOString(),
+          endLocal: endLocal.toISOString(),
+          cursorStart: cursor.toISOString(),
+          cursorEnd: end.toISOString(),
+          timezone: timezone,
+          seriesData: series.map(s => ({ period: s.period, amount: s.amount }))
+        });
+        
+        while (cursor <= end) {
+          // Use timezone-aware date formatting to match the grouped period format
+          const key = formatDateForTimezone(cursor, timezone);
+          const v = map[key] || { amount: 0, count: 0 };
+          filled.push({ period: key, amount: v.amount, count: v.count });
+          cursor.setDate(cursor.getDate() + 1);
+        }
+        
+        // Debug logging for final result
+        logger.info('Expense series final result:', {
+          filledLength: filled.length,
+          filled: filled.slice(0, 3) // Show first 3 entries
+        });
+        
+        return filled;
+      }
+
+      // Monthly series - use timezone-aware date formatting
+      const timezone = getStoreTimezone(storeId);
+      const series = await Expense.aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: {
+              // Format date as YYYY-MM in local timezone
+              monthString: {
+                $dateToString: {
+                  format: '%Y-%m',
+                  date: '$date',
+                  timezone: timezone
+                }
+              }
+            },
+            amount: { $sum: '$amount' },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.monthString': 1 } },
+        {
+          $project: {
+            _id: 0,
+            period: '$_id.monthString',
+            amount: 1,
+            count: 1
+          }
+        }
+      ]);
+      
+      // Debug logging for monthly series
+      logger.info('Expense monthly series result:', {
+        seriesLength: series.length,
+        series: series.slice(0, 3) // Show first 3 entries
+      });
+      
+      return series;
+    } catch (error) {
+      logger.error('Error getting expense series:', error);
+      return [];
+    }
+  }
   /**
    * Create a new expense
    */
@@ -378,23 +532,38 @@ export class ExpenseService {
         filter.store_id = storeId;
       }
 
+      // Get timezone for the store to ensure correct date grouping
+      const timezone = getStoreTimezone(storeId);
+
       const monthlyData = await Expense.aggregate([
         { $match: filter },
         { $group: { 
           _id: { 
-            month: { $month: '$date' },
-            year: { $year: '$date' }
+            // Format date as YYYY-MM in local timezone first
+            monthString: {
+              $dateToString: {
+                format: '%Y-%m',
+                date: '$date',
+                timezone: timezone
+              }
+            }
           }, 
           total_amount: { $sum: '$amount' },
           expense_count: { $sum: 1 },
           categories: { $push: { category: '$category', amount: '$amount' } }
         }},
-        { $sort: { '_id.month': 1 } },
+        { $sort: { '_id.monthString': 1 } },
         { $project: { 
           month: { 
             $dateToString: { 
               format: '%B', 
-              date: { $dateFromParts: { year: '$_id.year', month: '$_id.month', day: 1 } }
+              date: {
+                $dateFromString: {
+                  dateString: { $concat: ['$_id.monthString', '-01T00:00:00'] },
+                  timezone: timezone
+                }
+              },
+              timezone: timezone
             }
           },
           total_amount: 1,

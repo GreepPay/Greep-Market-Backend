@@ -57,10 +57,8 @@ export class TransactionService {
             throw new Error(`Product with ID ${item.product_id} not found`);
           }
 
-          // Check if enough stock is available
-          if (product.stock_quantity < item.quantity) {
-            throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock_quantity}, Requested: ${item.quantity}`);
-          }
+          // Note: Stock availability will be checked when transaction is completed
+          // This allows creating pending transactions even if stock is temporarily low
 
           return {
             product_id: item.product_id,
@@ -96,15 +94,8 @@ export class TransactionService {
 
       await transaction.save();
 
-      // Update product stock quantities
-      await Promise.all(
-        itemsWithDetails.map(async (item) => {
-          await Product.findByIdAndUpdate(item.product_id, {
-            $inc: { stock_quantity: -item.quantity },
-            updated_at: new Date()
-          });
-        })
-      );
+      // Note: Stock is NOT reduced here - it will be reduced when transaction is completed
+      // This prevents double stock reduction and allows proper cancellation handling
 
       return this.formatTransactionResponse(transaction);
     } catch (error) {
@@ -134,9 +125,9 @@ export class TransactionService {
     try {
       const query: any = {};
       
-      if (storeId) {
-        query.store_id = storeId;
-      }
+      // Always filter by storeId - use provided storeId or default
+      const finalStoreId = storeId || 'default-store';
+      query.store_id = finalStoreId;
       
       if (status) {
         query.status = status;
@@ -149,10 +140,10 @@ export class TransactionService {
       // Add timezone-aware date filtering
       if (startDate || endDate) {
         // Debug timezone information
-        debugTimezoneInfo(startDate, getStoreTimezone(storeId));
+        debugTimezoneInfo(startDate, getStoreTimezone(finalStoreId));
         
         // Parse date range with timezone awareness
-        const dateRange = parseDateRange(startDate, endDate, getStoreTimezone(storeId));
+        const dateRange = parseDateRange(startDate, endDate, getStoreTimezone(finalStoreId));
         
         if (dateRange) {
           query.created_at = {
@@ -161,10 +152,10 @@ export class TransactionService {
           };
           
           logger.info('Applied timezone-aware date filter:', {
-            storeId,
+            storeId: finalStoreId,
             startDate,
             endDate,
-            timezone: getStoreTimezone(storeId),
+            timezone: getStoreTimezone(finalStoreId),
             filterRange: {
               start: dateRange.start.toISOString(),
               end: dateRange.end.toISOString()
@@ -175,6 +166,18 @@ export class TransactionService {
         }
       }
 
+      // Debug the query being built
+      logger.info('TransactionService.getTransactions - Query built:', {
+        query,
+        storeId: finalStoreId,
+        status,
+        paymentMethod,
+        startDate,
+        endDate,
+        page,
+        limit
+      });
+
       const skip = (page - 1) * limit;
 
       const [transactions, total] = await Promise.all([
@@ -184,6 +187,15 @@ export class TransactionService {
           .limit(limit),
         Transaction.countDocuments(query),
       ]);
+
+      // Debug the results
+      logger.info('TransactionService.getTransactions - Results:', {
+        query,
+        totalFound: total,
+        transactionsReturned: transactions.length,
+        sampleStoreIds: transactions.slice(0, 3).map(t => t.store_id),
+        sampleDates: transactions.slice(0, 3).map(t => t.created_at)
+      });
 
       const pages = Math.ceil(total / limit);
 
@@ -226,23 +238,61 @@ export class TransactionService {
     paymentStatus?: 'pending' | 'completed' | 'failed' | 'refunded'
   ): Promise<TransactionResponse> {
     try {
+      const transaction = await Transaction.findById(transactionId);
+      if (!transaction) {
+        throw new Error('Transaction not found');
+      }
+
       const updateData: any = { status };
       
       if (paymentStatus) {
         updateData.payment_status = paymentStatus;
       }
 
-      const transaction = await Transaction.findByIdAndUpdate(
+      // If completing a transaction, reduce stock
+      if (status === 'completed' && transaction.status === 'pending') {
+        // Check stock availability before reducing
+        for (const item of transaction.items) {
+          const product = await Product.findById(item.product_id);
+          if (!product) {
+            throw new Error(`Product with ID ${item.product_id} not found`);
+          }
+          if (product.stock_quantity < item.quantity) {
+            throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
+          }
+        }
+
+        // Reduce stock for all items
+        await Promise.all(
+          transaction.items.map(async (item) => {
+            await Product.findByIdAndUpdate(item.product_id, {
+              $inc: { stock_quantity: -item.quantity },
+              updated_at: new Date()
+            });
+          })
+        );
+      }
+
+      // If cancelling a completed transaction, restore stock
+      if (status === 'cancelled' && transaction.status === 'completed') {
+        await Promise.all(
+          transaction.items.map(async (item) => {
+            await Product.findByIdAndUpdate(item.product_id, {
+              $inc: { stock_quantity: item.quantity },
+              updated_at: new Date()
+            });
+          })
+        );
+      }
+
+      // Update the transaction
+      const updatedTransaction = await Transaction.findByIdAndUpdate(
         transactionId,
         updateData,
         { new: true }
       );
 
-      if (!transaction) {
-        throw new Error('Transaction not found');
-      }
-
-      return this.formatTransactionResponse(transaction);
+      return this.formatTransactionResponse(updatedTransaction);
     } catch (error) {
       logger.error('Error updating transaction status:', error);
       throw error;
@@ -250,7 +300,7 @@ export class TransactionService {
   }
 
   /**
-   * Cancel transaction and restore stock
+   * Cancel transaction and restore stock (if transaction was completed)
    */
   static async cancelTransaction(transactionId: string): Promise<TransactionResponse> {
     try {
@@ -259,15 +309,17 @@ export class TransactionService {
         throw new Error('Transaction not found');
       }
 
-      // Restore product stock quantities
-      await Promise.all(
-        transaction.items.map(async (item) => {
-          await Product.findByIdAndUpdate(item.product_id, {
-            $inc: { stock_quantity: item.quantity },
-            updated_at: new Date()
-          });
-        })
-      );
+      // Only restore stock if the transaction was previously completed
+      if (transaction.status === 'completed') {
+        await Promise.all(
+          transaction.items.map(async (item) => {
+            await Product.findByIdAndUpdate(item.product_id, {
+              $inc: { stock_quantity: item.quantity },
+              updated_at: new Date()
+            });
+          })
+        );
+      }
 
       // Update transaction status
       transaction.status = 'cancelled';
