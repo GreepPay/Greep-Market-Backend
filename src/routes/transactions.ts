@@ -52,13 +52,26 @@ router.use(authenticate);
  */
 router.get('/', asyncHandler(async (req: Request, res: Response) => {
   try {
-    const storeId = req.query.store_id as string;
+    // Use authenticated user's store_id instead of query parameter (for security)
+    const storeId = (req as any).user.storeId || 'default-store';
     const status = req.query.status as string;
     const paymentMethod = req.query.payment_method as string;
     const startDate = req.query.start_date as string;
     const endDate = req.query.end_date as string;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
+
+    // Debug logging
+    logger.info('Transactions API request:', {
+      storeId,
+      status,
+      paymentMethod,
+      startDate,
+      endDate,
+      page,
+      limit,
+      userId: (req as any).user?.id
+    });
 
     const result = await TransactionService.getTransactions(
       storeId, 
@@ -69,11 +82,22 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
       page, 
       limit
     );
+
+    // Debug logging for response
+    logger.info('Transactions API response:', {
+      transactionCount: result.transactions.length,
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      pages: result.pages,
+      sampleDates: result.transactions.slice(0, 3).map(t => t.created_at)
+    });
     
     res.json({
       success: true,
       data: result.transactions,
       total: result.total,
+      transactionCount: result.transactions.length, // Add for frontend compatibility
       page: result.page || page,
       limit: result.limit || limit,
       pages: result.pages || Math.ceil(result.total / limit)
