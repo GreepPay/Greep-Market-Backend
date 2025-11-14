@@ -10,7 +10,8 @@ import {
   getTodayRange, 
   getThisMonthRange, 
   getLastNDaysRange,
-  debugTimezoneInfo 
+  debugTimezoneInfo,
+  formatDateForTimezone
 } from '../utils/timezone';
 
 export interface DashboardFilters {
@@ -59,6 +60,16 @@ export interface DashboardMetrics {
     transactions: number;
     onlineSales: number;
     inStoreSales: number;
+  }>;
+  salesByPeriod?: Array<{
+    period: string;
+    revenue: number;
+    transactions: number;
+  }>;
+  expensesByPeriod?: Array<{
+    period: string;
+    amount: number;
+    count: number;
   }>;
 }
 
@@ -121,6 +132,30 @@ export interface InventoryAnalytics {
 }
 
 export class AnalyticsService {
+  private static normalizePaymentMethod(method?: string): string {
+    const key = (method || 'unknown').toString().trim().toLowerCase();
+    switch (key) {
+      case 'card':
+      case 'pos':
+      case 'bank_card':
+      case 'debit_card':
+      case 'credit_card':
+        return 'pos';
+      case 'transfer':
+      case 'naira_transfer':
+      case 'bank_transfer':
+        return 'naira_transfer';
+      case 'crypto':
+      case 'crypto_payment':
+        return 'crypto_payment';
+      case 'cash_on_delivery':
+      case 'cod':
+      case 'cash':
+        return 'cash';
+      default:
+        return key || 'unknown';
+    }
+  }
   /**
    * Get dashboard metrics with filtering support
    */
@@ -191,19 +226,53 @@ export class AnalyticsService {
 
       // Get expense data - use same date filtering as transactions
       let expenseStartDate, expenseEndDate;
-      if (filters && filters.dateRange) {
-        // Use the same date range as transactions
+      if (filters && (filters.startDate || filters.endDate)) {
+        // Custom date range - use the provided dates directly
+        if (filters.startDate) {
+          // Parse in timezone if string, otherwise use as-is
+          expenseStartDate = typeof filters.startDate === 'string'
+            ? parseDateRange(filters.startDate, filters.startDate, storeTimezone)?.start || new Date(filters.startDate)
+            : filters.startDate;
+        } else {
+          expenseStartDate = monthRange.start;
+        }
+        
+        if (filters.endDate) {
+          expenseEndDate = typeof filters.endDate === 'string'
+            ? parseDateRange(filters.endDate, filters.endDate, storeTimezone)?.end || new Date(filters.endDate)
+            : filters.endDate;
+          // Ensure endDate is end of day in local timezone
+          expenseEndDate.setHours(23, 59, 59, 999);
+        } else {
+          expenseEndDate = monthRange.end;
+        }
+        
+        logger.info('Using custom date range for expense data:', {
+          storeId,
+          originalStartDate: filters.startDate,
+          originalEndDate: filters.endDate,
+          parsedStartDate: expenseStartDate?.toISOString(),
+          parsedEndDate: expenseEndDate?.toISOString(),
+          timezone: storeTimezone
+        });
+      } else if (filters && filters.dateRange) {
+        // Predefined date range - use getDateFilter
         const dateFilter = this.getDateFilter(filters, storeTimezone);
         if (dateFilter) {
           expenseStartDate = dateFilter.$gte;
           expenseEndDate = dateFilter.$lte;
         } else {
-          expenseStartDate = todayRange.start;
-          expenseEndDate = todayRange.end;
+          // Fallback to current month range to match default charts
+          expenseStartDate = monthRange.start;
+          expenseEndDate = monthRange.end;
         }
       } else {
-        expenseStartDate = todayRange.start;
-        expenseEndDate = todayRange.end;
+        // No filter provided: use a broader range to show historical expense data
+        // This ensures expense trends are visible even without specific date filters
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        expenseStartDate = thirtyDaysAgo;
+        expenseEndDate = new Date();
       }
       
       // Debug logging for filters
@@ -224,6 +293,19 @@ export class AnalyticsService {
       });
       
       const expenseStats = await ExpenseService.getExpenseStats(storeId, expenseStartDate, expenseEndDate);
+      const expenseSeries = await ExpenseService.getExpenseSeries(expenseStartDate, expenseEndDate, storeId);
+      
+      // Debug logging for expense data
+      logger.info('Expense data debug:', {
+        expenseStartDate: expenseStartDate?.toISOString(),
+        expenseEndDate: expenseEndDate?.toISOString(),
+        expenseStats: {
+          totalExpenses: expenseStats.totalExpenses,
+          totalAmount: expenseStats.totalAmount
+        },
+        expenseSeriesLength: expenseSeries.length,
+        expenseSeries: expenseSeries.slice(0, 5) // Show first 5 entries for debugging
+      });
         
       // Monthly expenses should always use monthly date range
       const monthlyExpenseStats = await ExpenseService.getExpenseStats(storeId, monthRange.start, monthRange.end);
@@ -326,18 +408,61 @@ export class AnalyticsService {
       const vsYesterdayMetrics = await this.calculateVsYesterdayMetrics(storeId, filters);
 
       // Get sales data based on the filter period
-      let salesByPeriod;
-      if (filters && filters.dateRange) {
-        // Use the appropriate period-based sales data
-        salesByPeriod = await this.getSalesByPeriod(storeId, filters.dateRange);
+      // If custom date range is provided (startDate/endDate), use daily aggregation
+      // Otherwise use predefined periods or monthly data
+      let salesByPeriodData;
+      if (filters && (filters.startDate || filters.endDate)) {
+        // Custom date range - use timezone-aware date parsing
+        // Parse dates in store timezone to ensure correct date range
+        let startDate: Date;
+        let endDate: Date;
+        
+        if (filters.startDate) {
+          // If date string, parse in timezone; if Date object, use as-is
+          startDate = typeof filters.startDate === 'string' 
+            ? parseDateRange(filters.startDate, filters.startDate, storeTimezone)?.start || new Date(filters.startDate)
+            : filters.startDate;
+        } else {
+          startDate = monthRange.start;
+        }
+        
+        if (filters.endDate) {
+          endDate = typeof filters.endDate === 'string'
+            ? parseDateRange(filters.endDate, filters.endDate, storeTimezone)?.end || new Date(filters.endDate)
+            : filters.endDate;
+          // Ensure endDate is end of day in local timezone
+          endDate.setHours(23, 59, 59, 999);
+        } else {
+          endDate = monthRange.end;
+        }
+        
+        logger.info('Using custom date range for sales data:', {
+          storeId,
+          originalStartDate: filters.startDate,
+          originalEndDate: filters.endDate,
+          parsedStartDate: startDate.toISOString(),
+          parsedEndDate: endDate.toISOString(),
+          startDateLocal: startDate.toLocaleString(),
+          endDateLocal: endDate.toLocaleString(),
+          timezone: storeTimezone
+        });
+        
+        const salesAnalytics = await this.getSalesAnalyticsByDateRange(storeId, startDate, endDate);
+        salesByPeriodData = salesAnalytics.salesByPeriod;
+      } else if (filters && filters.dateRange) {
+        // Use the appropriate period-based sales data for predefined periods
+        salesByPeriodData = await this.getSalesByPeriod(storeId, filters.dateRange);
       } else {
         // Default to monthly data for unfiltered dashboard
-        salesByPeriod = await this.getSalesByMonth(storeId, filters);
+        salesByPeriodData = null; // Will use salesByMonth instead
       }
 
       // Calculate expense totals
       const totalExpenses = expenseStats.totalAmount;
       const monthlyExpenses = monthlyExpenseStats.totalAmount;
+
+      // Get proper sales by month data with online/in-store breakdown
+      const salesByMonthData = await this.getSalesByMonth(storeId, filters);
 
       // Calculate payment methods breakdown from ALL transactions (not just recent ones)
       const paymentMethodsAggregation = await Transaction.aggregate([
@@ -350,10 +475,11 @@ export class AnalyticsService {
         }
       ]);
       
+      // Normalize and collapse aliases into unified buckets
       const paymentMethodsData: { [method: string]: number } = {};
       paymentMethodsAggregation.forEach(item => {
-        const method = item._id || 'unknown';
-        paymentMethodsData[method] = item.totalAmount;
+        const normalized = this.normalizePaymentMethod(item._id);
+        paymentMethodsData[normalized] = (paymentMethodsData[normalized] || 0) + (item.totalAmount || 0);
       });
 
       // Calculate order sources breakdown from ALL transactions (not just recent ones)
@@ -399,7 +525,11 @@ export class AnalyticsService {
           paymentMethod: t.payment_method,
           createdAt: t.created_at
         })),
-        salesByMonth: salesByPeriod
+        salesByMonth: salesByMonthData,
+        // Expose sales by period (daily/weekly) for charts when custom date range is used
+        salesByPeriod: salesByPeriodData || undefined,
+        // Expose expense series for charts expecting daily values
+        expensesByPeriod: expenseSeries
       };
 
       // Cache the result (5 minute TTL for dashboard metrics)
@@ -451,60 +581,137 @@ export class AnalyticsService {
       // Get sales by period (daily for custom ranges, monthly for longer ranges)
       const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
       let salesByPeriod: Array<{ period: string; revenue: number; transactions: number }> = [];
+      
+      const timezone = getStoreTimezone(storeId);
 
       if (daysDiff <= 31) {
-        // Daily breakdown
-        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-          const dayStart = new Date(d);
-          dayStart.setHours(0, 0, 0, 0);
-          const dayEnd = new Date(d);
-          dayEnd.setHours(23, 59, 59, 999);
+        // Daily breakdown - use timezone-aware MongoDB aggregation
+        const dailyAggregation = await Transaction.aggregate([
+          { $match: query },
+          {
+            $group: {
+              _id: {
+                // Format date as YYYY-MM-DD in local timezone
+                dateString: {
+                  $dateToString: {
+                    format: '%Y-%m-%d',
+                    date: '$created_at',
+                    timezone: timezone
+                  }
+                }
+              },
+              revenue: { $sum: '$total_amount' },
+              transactions: { $sum: 1 }
+            }
+          },
+          { $sort: { '_id.dateString': 1 } },
+          {
+            $project: {
+              _id: 0,
+              period: '$_id.dateString',
+              revenue: 1,
+              transactions: 1
+            }
+          }
+        ]);
 
-          const dayQuery = { ...query, created_at: { $gte: dayStart, $lte: dayEnd } };
+        // Create a map of actual data
+        const salesMap = new Map<string, { revenue: number; transactions: number }>();
+        dailyAggregation.forEach(item => {
+          salesMap.set(item.period, { revenue: item.revenue, transactions: item.transactions });
+        });
+
+        // Fill in all days in the range (with zeros for days without transactions)
+        // Use timezone-aware date calculations to ensure correct date boundaries
+        // Convert dates to timezone-aware local dates to avoid timezone shifts
+        const startInTimezone = new Date(startDate.toLocaleString('en-US', { timeZone: timezone }));
+        const endInTimezone = new Date(endDate.toLocaleString('en-US', { timeZone: timezone }));
+        
+        const startLocal = new Date(startInTimezone.getFullYear(), startInTimezone.getMonth(), startInTimezone.getDate());
+        const endLocal = new Date(endInTimezone.getFullYear(), endInTimezone.getMonth(), endInTimezone.getDate());
+        const cursor = new Date(startLocal);
+
+        while (cursor <= endLocal) {
+          // Format date in timezone for period key
+          const periodKey = formatDateForTimezone(cursor, timezone);
+          const data = salesMap.get(periodKey) || { revenue: 0, transactions: 0 };
           
-          const [dayRevenue, dayTransactions] = await Promise.all([
-            Transaction.aggregate([
-              { $match: dayQuery },
-              { $group: { _id: null, total: { $sum: '$total_amount' } } }
-            ]),
-            Transaction.countDocuments(dayQuery)
-          ]);
-
           salesByPeriod.push({
-            period: d.toISOString().split('T')[0],
-            revenue: dayRevenue[0]?.total || 0,
-            transactions: dayTransactions || 0
+            period: periodKey,
+            revenue: data.revenue,
+            transactions: data.transactions
           });
+          
+          cursor.setDate(cursor.getDate() + 1);
         }
+
+        logger.info('Daily sales aggregation result:', {
+          storeId,
+          timezone,
+          dateRange: {
+            start: startDate.toISOString(),
+            end: endDate.toISOString()
+          },
+          daysInRange: daysDiff,
+          periodsReturned: salesByPeriod.length,
+          periodsWithData: salesByPeriod.filter(p => p.revenue > 0 || p.transactions > 0).length,
+          samplePeriods: salesByPeriod.slice(0, 5).map(p => ({ period: p.period, revenue: p.revenue, transactions: p.transactions }))
+        });
       } else {
-        // Monthly breakdown
-        const current = new Date(startDate);
-        while (current <= endDate) {
-          const monthStart = new Date(current.getFullYear(), current.getMonth(), 1);
-          const monthEnd = new Date(current.getFullYear(), current.getMonth() + 1, 0, 23, 59, 59);
-          
-          const monthQuery = { 
-            ...query, 
-            created_at: { 
-              $gte: monthStart, 
-              $lte: monthEnd 
-            } 
-          };
-          
-          const [monthRevenue, monthTransactions] = await Promise.all([
-            Transaction.aggregate([
-              { $match: monthQuery },
-              { $group: { _id: null, total: { $sum: '$total_amount' } } }
-            ]),
-            Transaction.countDocuments(monthQuery)
-          ]);
+        // Monthly breakdown - use timezone-aware MongoDB aggregation
+        const monthlyAggregation = await Transaction.aggregate([
+          { $match: query },
+          {
+            $group: {
+              _id: {
+                // Format date as YYYY-MM in local timezone
+                monthString: {
+                  $dateToString: {
+                    format: '%Y-%m',
+                    date: '$created_at',
+                    timezone: timezone
+                  }
+                }
+              },
+              revenue: { $sum: '$total_amount' },
+              transactions: { $sum: 1 }
+            }
+          },
+          { $sort: { '_id.monthString': 1 } },
+          {
+            $project: {
+              _id: 0,
+              period: '$_id.monthString',
+              revenue: 1,
+              transactions: 1
+            }
+          }
+        ]);
 
+        // Create a map of actual data
+        const salesMap = new Map<string, { revenue: number; transactions: number }>();
+        monthlyAggregation.forEach(item => {
+          salesMap.set(item.period, { revenue: item.revenue, transactions: item.transactions });
+        });
+
+        // Fill in all months in the range (with zeros for months without transactions)
+        // Use timezone-aware date calculations
+        const startInTimezone = new Date(startDate.toLocaleString('en-US', { timeZone: timezone }));
+        const endInTimezone = new Date(endDate.toLocaleString('en-US', { timeZone: timezone }));
+        
+        const current = new Date(startInTimezone.getFullYear(), startInTimezone.getMonth(), 1);
+        const endMonth = new Date(endInTimezone.getFullYear(), endInTimezone.getMonth() + 1, 0, 23, 59, 59);
+        
+        while (current <= endMonth) {
+          const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+          const data = salesMap.get(monthKey) || { revenue: 0, transactions: 0 };
+          
           salesByPeriod.push({
-            period: `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`,
-            revenue: monthRevenue[0]?.total || 0,
-            transactions: monthTransactions || 0
+            period: monthKey,
+            revenue: data.revenue,
+            transactions: data.transactions
           });
-
+          
           current.setMonth(current.getMonth() + 1);
         }
       }
@@ -1067,12 +1274,39 @@ export class AnalyticsService {
 
   /**
    * Get sales by month
+   * Always returns the last 12 months for chart display, regardless of date filters
+   * Date filters apply to summary metrics but not to historical chart data
    */
   private static async getSalesByMonth(storeId?: string, filters?: DashboardFilters): Promise<any[]> {
     try {
+      const timezone = getStoreTimezone(storeId);
+      
+      // Always use last 12 months for chart display (regardless of date filters)
+      // This ensures historical trends are visible even when filtering by date range
+      // Use timezone-aware date calculation to ensure correct date ranges
+      const now = new Date();
+      const nowInTimezone = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+      
+      // Calculate 12 months ago in the store's timezone
+      const twelveMonthsAgo = new Date(nowInTimezone);
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+      twelveMonthsAgo.setDate(1); // Start of that month
+      twelveMonthsAgo.setHours(0, 0, 0, 0);
+      
+      // Ensure end date is end of today in the store's timezone
+      const endDate = new Date(nowInTimezone);
+      endDate.setHours(23, 59, 59, 999);
+      
       let matchFilter: any = storeId ? { store_id: storeId } : {};
       
-      // Apply filters
+      // Always include date range for last 12 months (for chart display)
+      // Use timezone-aware date ranges to ensure correct historical data
+      matchFilter.created_at = {
+        $gte: twelveMonthsAgo,
+        $lte: endDate
+      };
+      
+      // Apply other filters (status, payment method, order source)
       if (filters) {
         // Apply status filter
         if (filters.status && filters.status !== 'all') {
@@ -1090,23 +1324,23 @@ export class AnalyticsService {
         if (filters.orderSource && filters.orderSource !== 'all') {
           matchFilter.order_source = filters.orderSource;
         }
-
-        // Apply date range filter
-        const timezone = getStoreTimezone(storeId);
-        const dateFilter = this.getDateFilter(filters, timezone);
-        if (dateFilter) {
-          matchFilter.created_at = dateFilter;
-        }
       } else {
         matchFilter.status = { $in: ['completed', 'pending'] }; // Include both completed and pending by default
       }
       
+      // Use timezone-aware date grouping (like expenses)
       const salesByMonth = await Transaction.aggregate([
         { $match: matchFilter },
         { $group: { 
           _id: { 
-            year: { $year: '$created_at' }, 
-            month: { $month: '$created_at' } 
+            // Format date as YYYY-MM in local timezone first
+            monthString: {
+              $dateToString: {
+                format: '%Y-%m',
+                date: '$created_at',
+                timezone: timezone
+              }
+            }
           }, 
           sales: { $sum: '$total_amount' },
           transactions: { $sum: 1 },
@@ -1133,10 +1367,9 @@ export class AnalyticsService {
             }
           }
         }},
-        { $sort: { '_id.year': 1, '_id.month': 1 } },
-        { $limit: 12 },
+        { $sort: { '_id.monthString': 1 } },
         { $project: { 
-          month: { $dateToString: { format: '%Y-%m', date: { $dateFromParts: { year: '$_id.year', month: '$_id.month', day: 1 } } } },                          
+          month: '$_id.monthString', // Use YYYY-MM format
           sales: 1, 
           transactions: 1,
           onlineSales: 1,
@@ -1144,6 +1377,19 @@ export class AnalyticsService {
           _id: 0 
         }}
       ]);
+
+      logger.info('getSalesByMonth result:', {
+        storeId,
+        timezone,
+        dateRange: {
+          start: twelveMonthsAgo.toISOString(),
+          end: endDate.toISOString()
+        },
+        startLocal: twelveMonthsAgo.toLocaleString('en-US', { timeZone: timezone }),
+        endLocal: endDate.toLocaleString('en-US', { timeZone: timezone }),
+        monthsReturned: salesByMonth.length,
+        months: salesByMonth.map(m => m.month)
+      });
 
       return salesByMonth;
     } catch (error) {
@@ -1358,95 +1604,104 @@ export class AnalyticsService {
    */
   private static async getSalesByPeriod(storeId?: string, period?: string): Promise<any[]> {
     try {
-      const matchFilter = storeId ? { store_id: storeId, status: { $in: ['completed', 'pending'] } } : { status: { $in: ['completed', 'pending'] } };
-      
-      let groupBy = {};
-      let periodFormat = {};
-      
-      if (period === 'today') {
-        groupBy = { 
-          year: { $year: '$created_at' }, 
-          month: { $month: '$created_at' },
-          day: { $dayOfMonth: '$created_at' },
-          hour: { $hour: '$created_at' } 
-        };
-        periodFormat = { 
-          $concat: [
-            { $toString: '$_id.year' },
-            '-',
-            { $toString: { $cond: { if: { $lt: ['$_id.month', 10] }, then: { $concat: ['0', { $toString: '$_id.month' }] }, else: { $toString: '$_id.month' } } } },
-            '-',
-            { $toString: { $cond: { if: { $lt: ['$_id.day', 10] }, then: { $concat: ['0', { $toString: '$_id.day' }] }, else: { $toString: '$_id.day' } } } },
-            ' ',
-            { $toString: { $cond: { if: { $lt: ['$_id.hour', 10] }, then: { $concat: ['0', { $toString: '$_id.hour' }] }, else: { $toString: '$_id.hour' } } } },
-            ':00'
-          ]
-        };
-      } else if (period === 'week' || period === '7d') {
-        groupBy = { 
-          year: { $year: '$created_at' }, 
-          week: { $week: '$created_at' },
-          dayOfWeek: { $dayOfWeek: '$created_at' } 
-        };
-        periodFormat = { 
-          $concat: [
-            { $toString: '$_id.year' },
-            '-W',
-            { $toString: '$_id.week' },
-            '-Day',
-            { $toString: '$_id.dayOfWeek' }
-          ]
-        };
-      } else if (period === 'month' || period === '30d') {
-        groupBy = { 
-          year: { $year: '$created_at' }, 
-          month: { $month: '$created_at' },
-          day: { $dayOfMonth: '$created_at' } 
-        };
-        periodFormat = { 
-          $concat: [
-            { $toString: '$_id.year' },
-            '-',
-            { $toString: { $cond: { if: { $lt: ['$_id.month', 10] }, then: { $concat: ['0', { $toString: '$_id.month' }] }, else: { $toString: '$_id.month' } } } },
-            '-',
-            { $toString: { $cond: { if: { $lt: ['$_id.day', 10] }, then: { $concat: ['0', { $toString: '$_id.day' }] }, else: { $toString: '$_id.day' } } } }
-          ]
-        };
-      } else {
-        // Default to monthly grouping
-        groupBy = { 
-          year: { $year: '$created_at' }, 
-          month: { $month: '$created_at' } 
-        };
-        periodFormat = { 
-          $concat: [
-            { $toString: '$_id.year' },
-            '-',
-            { $toString: { $cond: { if: { $lt: ['$_id.month', 10] }, then: { $concat: ['0', { $toString: '$_id.month' }] }, else: { $toString: '$_id.month' } } } }
-          ]
+      const timezone = getStoreTimezone(storeId);
+      let matchFilter: any = storeId ? { store_id: storeId, status: { $in: ['completed', 'pending'] } } : { status: { $in: ['completed', 'pending'] } };
+
+      let dateFormat = '%Y-%m';
+      let fillMissingDays = false;
+      let dateRange: { start: Date; end: Date } | null = null;
+
+      switch (period) {
+        case 'today': {
+          dateRange = getTodayRange(timezone);
+          dateFormat = '%Y-%m-%d %H:00';
+          break;
+        }
+        case 'week':
+        case '7d': {
+          dateRange = getLastNDaysRange(7, timezone);
+          dateFormat = '%Y-%m-%d';
+          fillMissingDays = true;
+          break;
+        }
+        case 'month':
+        case '30d': {
+          dateRange = getLastNDaysRange(30, timezone);
+          dateFormat = '%Y-%m-%d';
+          fillMissingDays = true;
+          break;
+        }
+        case '90d': {
+          dateRange = getLastNDaysRange(90, timezone);
+          dateFormat = '%Y-%m-%d';
+          fillMissingDays = true;
+          break;
+        }
+        case '1y': {
+          dateRange = getLastNDaysRange(365, timezone);
+          dateFormat = '%Y-%m';
+          break;
+        }
+        default: {
+          dateRange = getLastNDaysRange(30, timezone);
+          dateFormat = '%Y-%m';
+        }
+      }
+
+      if (dateRange) {
+        matchFilter.created_at = {
+          $gte: dateRange.start,
+          $lte: dateRange.end
         };
       }
 
-      const salesByPeriod = await Transaction.aggregate([
+      const aggregated = await Transaction.aggregate([
         { $match: matchFilter },
-        { $group: { 
-          _id: groupBy, 
-          sales: { $sum: '$total_amount' },
-          transactions: { $sum: 1 }
-        }},
-        { $sort: { '_id': 1 } },
-        { $addFields: { 
-          month: periodFormat
-        }},
-        { $project: { 
-          month: 1, 
-          sales: 1, 
-          transactions: 1, 
-          _id: 0 
-        }}
+        {
+          $group: {
+            _id: {
+              periodString: {
+                $dateToString: {
+                  format: dateFormat,
+                  date: '$created_at',
+                  timezone
+                }
+              }
+            },
+            revenue: { $sum: '$total_amount' },
+            transactions: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.periodString': 1 } },
+        {
+          $project: {
+            _id: 0,
+            period: '$_id.periodString',
+            revenue: 1,
+            transactions: 1
+          }
+        }
       ]);
 
-      return salesByPeriod;
+      if (!fillMissingDays || !dateRange) {
+        return aggregated;
+      }
+
+      const resultsMap = new Map(aggregated.map(item => [item.period, item]));
+      const filled: Array<{ period: string; revenue: number; transactions: number }> = [];
+
+      const startLocal = new Date(dateRange.start.getFullYear(), dateRange.start.getMonth(), dateRange.start.getDate());
+      const endLocal = new Date(dateRange.end.getFullYear(), dateRange.end.getMonth(), dateRange.end.getDate());
+      const cursor = new Date(startLocal);
+
+      while (cursor <= endLocal) {
+        const periodKey = formatDateForTimezone(cursor, timezone);
+        const entry = resultsMap.get(periodKey) || { period: periodKey, revenue: 0, transactions: 0 };
+        filled.push(entry);
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      return filled;
     } catch (error) {
       logger.error('Error getting sales by period:', error);
       return [];
